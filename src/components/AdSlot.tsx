@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { usePro } from "@/lib/usePro";
 import { trackAdEvent } from "@/lib/adTracking";
 
-const CLIENT_ID = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
+const CLIENT_ID = (import.meta.env.VITE_ADSENSE_CLIENT as string | undefined) || "ca-pub-8816514726616311";
 
 declare global {
   interface Window {

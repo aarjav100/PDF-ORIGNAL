@@ -64,7 +64,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const adsenseClient = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
+  const adsenseClient = (import.meta.env.VITE_ADSENSE_CLIENT as string | undefined) || "ca-pub-8816514726616311";
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('paperflow-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);}catch(e){}` }} />
