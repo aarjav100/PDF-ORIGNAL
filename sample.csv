@@ -1,0 +1,11 @@
+age,salary,department,status,churn
+25,50000,sales,active,0
+30,80000,engineering,active,0
+45,120000,engineering,inactive,1
+22,45000,sales,active,0
+35,95000,hr,active,0
+50,150000,hr,inactive,1
+28,62000,sales,active,0
+24,52000,engineering,active,0
+29,67000,sales,active,0
+32,85000,engineering,active,0
