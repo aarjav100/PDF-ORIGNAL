@@ -5,7 +5,6 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { sendSupabaseAuth } from "./auth-client-middleware";
 import { callAi } from "./ai";
 
-
 /**
  * AI slide generation from a stored PDF.
  * 1. Downloads the PDF
@@ -72,13 +71,22 @@ export const generateSlides = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
     const supabase = getAuthedClient();
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
     if (userErr || !user) throw new Error("Not authenticated");
 
-    const { data: doc, error: docErr } = await supabase.from("documents").select("*").eq("id", data.documentId).single();
+    const { data: doc, error: docErr } = await supabase
+      .from("documents")
+      .select("*")
+      .eq("id", data.documentId)
+      .single();
     if (docErr || !doc) throw new Error("Document not found");
 
-    const { data: file, error: dlErr } = await supabase.storage.from("documents").download(doc.storage_path);
+    const { data: file, error: dlErr } = await supabase.storage
+      .from("documents")
+      .download(doc.storage_path);
     if (dlErr || !file) throw new Error("Could not download PDF");
     const buf = await file.arrayBuffer();
 
@@ -89,19 +97,25 @@ export const generateSlides = createServerFn({ method: "POST" })
     // Truncate to keep prompt small
     const trimmed = text.slice(0, 18000);
 
-    const requestedCount = data.slideCount
-      ?? (data.mode === "summary" ? 1 : 4);
-    const countInstr = requestedCount === 1
-      ? "exactly 1 slide that captures the entire essence"
-      : `exactly ${requestedCount} slides covering the document end-to-end`;
+    const requestedCount = data.slideCount ?? (data.mode === "summary" ? 1 : 4);
+    const countInstr =
+      requestedCount === 1
+        ? "exactly 1 slide that captures the entire essence"
+        : `exactly ${requestedCount} slides covering the document end-to-end`;
     const styleGuides: Record<NonNullable<typeof data.style>, string> = {
       bullets: "Use concise bullet points (3-5 per slide, max 14 words each).",
-      narrative: "Write 2-3 short narrative sentences per slide instead of bullets; keep bullets array filled with these sentences.",
-      questions: "Frame each slide title as a question the audience would ask, with bullets that answer it.",
-      executive: "Executive briefing tone: 2-3 high-signal bullets per slide, lead with outcomes and metrics.",
-      educational: "Teaching tone: each slide introduces a concept, then 3-4 bullets explaining it with examples.",
+      narrative:
+        "Write 2-3 short narrative sentences per slide instead of bullets; keep bullets array filled with these sentences.",
+      questions:
+        "Frame each slide title as a question the audience would ask, with bullets that answer it.",
+      executive:
+        "Executive briefing tone: 2-3 high-signal bullets per slide, lead with outcomes and metrics.",
+      educational:
+        "Teaching tone: each slide introduces a concept, then 3-4 bullets explaining it with examples.",
     };
-    const styleInstr = data.style ? styleGuides[data.style] : "Use concise bullet points (3-5 per slide, max 14 words each).";
+    const styleInstr = data.style
+      ? styleGuides[data.style]
+      : "Use concise bullet points (3-5 per slide, max 14 words each).";
     const systemPrompt = `You are an expert presentation designer. Convert source documents into clear, well-structured slide decks. ${styleInstr} Titles max 8 words. Suggest a simple image concept per slide.`;
     const userPrompt = `Build a presentation from the document below. Generate ${countInstr}.\n\nDOCUMENT:\n${trimmed}`;
 
@@ -110,45 +124,52 @@ export const generateSlides = createServerFn({ method: "POST" })
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      tools: [{
-        type: "function",
-        function: {
-          name: "build_deck",
-          description: "Return a structured slide deck.",
-          parameters: {
-            type: "object",
-            properties: {
-              deckTitle: { type: "string", description: "Overall presentation title" },
-              slides: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    subtitle: { type: "string" },
-                    bullets: { type: "array", items: { type: "string" } },
-                    imageSuggestion: { type: "string", description: "1-line description of an illustrative image" },
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "build_deck",
+            description: "Return a structured slide deck.",
+            parameters: {
+              type: "object",
+              properties: {
+                deckTitle: { type: "string", description: "Overall presentation title" },
+                slides: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: { type: "string" },
+                      subtitle: { type: "string" },
+                      bullets: { type: "array", items: { type: "string" } },
+                      imageSuggestion: {
+                        type: "string",
+                        description: "1-line description of an illustrative image",
+                      },
+                    },
+                    required: ["title", "bullets"],
+                    additionalProperties: false,
                   },
-                  required: ["title", "bullets"],
-                  additionalProperties: false,
                 },
               },
+              required: ["deckTitle", "slides"],
+              additionalProperties: false,
             },
-            required: ["deckTitle", "slides"],
-            additionalProperties: false,
           },
         },
-      }],
+      ],
       tool_choice: { type: "function", function: { name: "build_deck" } },
     });
 
     const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!argStr) throw new Error("AI did not return slide data");
 
-    const parsed = z.object({
-      deckTitle: z.string(),
-      slides: z.array(slideSchema).min(1),
-    }).parse(JSON.parse(argStr));
+    const parsed = z
+      .object({
+        deckTitle: z.string(),
+        slides: z.array(slideSchema).min(1),
+      })
+      .parse(JSON.parse(argStr));
 
     return { deckTitle: parsed.deckTitle, slides: parsed.slides, sourceFilename: doc.filename };
   });

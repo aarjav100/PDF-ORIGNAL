@@ -6,10 +6,16 @@ import { sendSupabaseAuth } from "./auth-client-middleware";
 
 const mlStepSchema = z.object({
   kind: z.enum([
-    "label_encode", "one_hot_encode",
-    "standard_scale", "minmax_scale", "robust_scale",
-    "polynomial_features", "log_transform", "binning",
-    "variance_threshold", "correlation_drop"
+    "label_encode",
+    "one_hot_encode",
+    "standard_scale",
+    "minmax_scale",
+    "robust_scale",
+    "polynomial_features",
+    "log_transform",
+    "binning",
+    "variance_threshold",
+    "correlation_drop",
   ]),
   columns: z.array(z.string()).default([]),
   options: z.record(z.any()).optional().default({}),
@@ -38,7 +44,10 @@ function getAuthedClient() {
   });
 }
 
-async function getCsvFromStorage(supabase: ReturnType<typeof getAuthedClient>, datasetId: string): Promise<{ csvText: string; filename: string; currentPath: string }> {
+async function getCsvFromStorage(
+  supabase: ReturnType<typeof getAuthedClient>,
+  datasetId: string,
+): Promise<{ csvText: string; filename: string; currentPath: string }> {
   const { data: dataset, error: dsErr } = await supabase
     .from("datasets")
     .select("filename, storage_path, cleaned_storage_path")
@@ -62,111 +71,115 @@ async function getCsvFromStorage(supabase: ReturnType<typeof getAuthedClient>, d
 
 import Papa from "papaparse";
 
-function fallbackTransform(csvText: string, steps: any[]): { csv: string; rows: number; columns: number; log: string[] } {
-  const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: "greedy" });
+function fallbackTransform(
+  csvText: string,
+  steps: any[],
+): { csv: string; rows: number; columns: number; log: string[] } {
+  const parsed = Papa.parse(csvText, {
+    header: true,
+    dynamicTyping: true,
+    skipEmptyLines: "greedy",
+  });
   let data = parsed.data as Record<string, any>[];
   let fields = parsed.meta.fields || [];
   const log: string[] = ["[JS Fallback] Python microservice unavailable. Handled locally."];
 
   for (const step of steps) {
     const cols = step.columns && step.columns.length > 0 ? step.columns : fields;
-    
+
     if (step.kind === "label_encode") {
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        const vals = data.map(r => String(r[col] ?? ""));
+        const vals = data.map((r) => String(r[col] ?? ""));
         const uniqueVals = Array.from(new Set(vals)).sort();
-        data.forEach(r => {
+        data.forEach((r) => {
           r[col] = uniqueVals.indexOf(String(r[col] ?? ""));
         });
       }
       log.push(`label_encode: ${cols}`);
-    } 
-    else if (step.kind === "one_hot_encode") {
+    } else if (step.kind === "one_hot_encode") {
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        const vals = data.map(r => String(r[col] ?? ""));
+        const vals = data.map((r) => String(r[col] ?? ""));
         const uniqueVals = Array.from(new Set(vals)).sort();
-        
-        fields = fields.filter(f => f !== col);
-        const newCols = uniqueVals.map(val => `${col}_${val}`);
+
+        fields = fields.filter((f) => f !== col);
+        const newCols = uniqueVals.map((val) => `${col}_${val}`);
         fields.push(...newCols);
 
-        data.forEach(r => {
+        data.forEach((r) => {
           const currentVal = String(r[col] ?? "");
           delete r[col];
-          uniqueVals.forEach(val => {
+          uniqueVals.forEach((val) => {
             r[`${col}_${val}`] = currentVal === val ? 1 : 0;
           });
         });
       }
       log.push(`one_hot_encode: ${cols}`);
-    }
-    else if (step.kind === "standard_scale") {
+    } else if (step.kind === "standard_scale") {
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        const vals = data.map(r => Number(r[col])).filter(n => !isNaN(n));
+        const vals = data.map((r) => Number(r[col])).filter((n) => !isNaN(n));
         if (vals.length === 0) continue;
         const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
         const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length) || 1;
-        data.forEach(r => {
+        data.forEach((r) => {
           const val = Number(r[col]);
           if (!isNaN(val)) r[col] = (val - mean) / std;
         });
       }
       log.push(`standard_scale: ${cols}`);
-    }
-    else if (step.kind === "minmax_scale") {
+    } else if (step.kind === "minmax_scale") {
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        const vals = data.map(r => Number(r[col])).filter(n => !isNaN(n));
+        const vals = data.map((r) => Number(r[col])).filter((n) => !isNaN(n));
         if (vals.length === 0) continue;
         const min = Math.min(...vals);
         const max = Math.max(...vals);
-        const range = (max - min) || 1;
-        data.forEach(r => {
+        const range = max - min || 1;
+        data.forEach((r) => {
           const val = Number(r[col]);
           if (!isNaN(val)) r[col] = (val - min) / range;
         });
       }
       log.push(`minmax_scale: ${cols}`);
-    }
-    else if (step.kind === "robust_scale") {
+    } else if (step.kind === "robust_scale") {
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        const vals = data.map(r => Number(r[col])).filter(n => !isNaN(n)).sort((a, b) => a - b);
+        const vals = data
+          .map((r) => Number(r[col]))
+          .filter((n) => !isNaN(n))
+          .sort((a, b) => a - b);
         if (vals.length === 0) continue;
         const median = vals[Math.floor(vals.length * 0.5)];
         const q1 = vals[Math.floor(vals.length * 0.25)];
         const q3 = vals[Math.floor(vals.length * 0.75)];
-        const iqr = (q3 - q1) || 1;
-        data.forEach(r => {
+        const iqr = q3 - q1 || 1;
+        data.forEach((r) => {
           const val = Number(r[col]);
           if (!isNaN(val)) r[col] = (val - median) / iqr;
         });
       }
       log.push(`robust_scale: ${cols}`);
-    }
-    else if (step.kind === "log_transform") {
+    } else if (step.kind === "log_transform") {
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        data.forEach(r => {
+        data.forEach((r) => {
           const val = Number(r[col]);
           if (!isNaN(val)) r[col] = Math.log1p(Math.max(0, val));
         });
       }
       log.push(`log_transform: ${cols}`);
-    }
-    else if (step.kind === "binning") {
+    } else if (step.kind === "binning") {
       const bins = Number(step.options?.bins) || 5;
       for (const col of cols) {
         if (!fields.includes(col)) continue;
-        const vals = data.map(r => Number(r[col])).filter(n => !isNaN(n));
+        const vals = data.map((r) => Number(r[col])).filter((n) => !isNaN(n));
         if (vals.length === 0) continue;
         const min = Math.min(...vals);
         const max = Math.max(...vals);
-        const range = (max - min) || 1;
-        data.forEach(r => {
+        const range = max - min || 1;
+        data.forEach((r) => {
           const val = Number(r[col]);
           if (!isNaN(val)) {
             const pct = (val - min) / range;
@@ -175,26 +188,24 @@ function fallbackTransform(csvText: string, steps: any[]): { csv: string; rows: 
         });
       }
       log.push(`binning (${bins} bins): ${cols}`);
-    }
-    else if (step.kind === "polynomial_features") {
+    } else if (step.kind === "polynomial_features") {
       if (cols.length >= 2) {
         const c1 = cols[0];
         const c2 = cols[1];
         const newCol = `${c1}_x_${c2}`;
         fields.push(newCol);
-        data.forEach(r => {
+        data.forEach((r) => {
           r[newCol] = (Number(r[c1]) || 0) * (Number(r[c2]) || 0);
         });
         log.push(`polynomial_features: added interaction ${newCol}`);
       } else {
         log.push(`polynomial_features: skipped (requires >= 2 columns in mock)`);
       }
-    }
-    else if (step.kind === "variance_threshold") {
+    } else if (step.kind === "variance_threshold") {
       const thresh = Number(step.options?.threshold) || 0.0;
       const drop: string[] = [];
       for (const col of fields) {
-        const vals = data.map(r => Number(r[col])).filter(n => !isNaN(n));
+        const vals = data.map((r) => Number(r[col])).filter((n) => !isNaN(n));
         if (vals.length === 0) continue;
         const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
         const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length;
@@ -202,13 +213,12 @@ function fallbackTransform(csvText: string, steps: any[]): { csv: string; rows: 
           drop.push(col);
         }
       }
-      fields = fields.filter(f => !drop.includes(f));
-      data.forEach(r => {
-        drop.forEach(c => delete r[c]);
+      fields = fields.filter((f) => !drop.includes(f));
+      data.forEach((r) => {
+        drop.forEach((c) => delete r[c]);
       });
       log.push(`variance_threshold (${thresh}): dropped ${drop}`);
-    }
-    else if (step.kind === "correlation_drop") {
+    } else if (step.kind === "correlation_drop") {
       log.push(`correlation_drop: mock check passed (no drops)`);
     }
   }
@@ -218,23 +228,32 @@ function fallbackTransform(csvText: string, steps: any[]): { csv: string; rows: 
     csv: newCsv,
     rows: data.length,
     columns: fields.length,
-    log
+    log,
   };
 }
 
-function fallbackAugment(csvText: string, method: string, target: string, options: any): {
+function fallbackAugment(
+  csvText: string,
+  method: string,
+  target: string,
+  options: any,
+): {
   csv: string;
   rows: number;
   before: Record<string, number>;
   after: Record<string, number>;
 } {
-  const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: "greedy" });
+  const parsed = Papa.parse(csvText, {
+    header: true,
+    dynamicTyping: true,
+    skipEmptyLines: "greedy",
+  });
   let data = parsed.data as Record<string, any>[];
   const fields = parsed.meta.fields || [];
 
-  const classes = data.map(r => String(r[target] ?? ""));
+  const classes = data.map((r) => String(r[target] ?? ""));
   const classCounts: Record<string, number> = {};
-  classes.forEach(c => classCounts[c] = (classCounts[c] ?? 0) + 1);
+  classes.forEach((c) => (classCounts[c] = (classCounts[c] ?? 0) + 1));
 
   const counts = Object.values(classCounts);
   const maxCount = Math.max(...counts);
@@ -248,12 +267,12 @@ function fallbackAugment(csvText: string, method: string, target: string, option
     Object.entries(classCounts).forEach(([className, count]) => {
       if (count < maxCount) {
         const needed = maxCount - count;
-        const matchingRows = data.filter(r => String(r[target] ?? "") === className);
+        const matchingRows = data.filter((r) => String(r[target] ?? "") === className);
         for (let i = 0; i < needed; i++) {
           const template = matchingRows[i % matchingRows.length];
           const newRow = { ...template };
           if (method === "smote") {
-            Object.keys(newRow).forEach(k => {
+            Object.keys(newRow).forEach((k) => {
               if (k !== target && typeof newRow[k] === "number") {
                 newRow[k] += (Math.random() - 0.5) * 0.05 * newRow[k];
               }
@@ -265,11 +284,10 @@ function fallbackAugment(csvText: string, method: string, target: string, option
       }
     });
     data = augmented;
-  }
-  else if (method === "random_under") {
+  } else if (method === "random_under") {
     const reduced: Record<string, any>[] = [];
     Object.entries(classCounts).forEach(([className, count]) => {
-      const matchingRows = data.filter(r => String(r[target] ?? "") === className);
+      const matchingRows = data.filter((r) => String(r[target] ?? "") === className);
       reduced.push(...matchingRows.slice(0, minCount));
       after[className] = minCount;
     });
@@ -281,7 +299,7 @@ function fallbackAugment(csvText: string, method: string, target: string, option
     csv: newCsv,
     rows: data.length,
     before,
-    after
+    after,
   };
 }
 
@@ -290,7 +308,10 @@ export const applyMlPipeline = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => applyMlInput.parse(input))
   .handler(async ({ data }) => {
     const supabase = getAuthedClient();
-    const { data: { user }, error: uErr } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: uErr,
+    } = await supabase.auth.getUser();
     if (uErr || !user) throw new Error("Not authenticated");
 
     const { csvText, filename } = await getCsvFromStorage(supabase, data.datasetId);
@@ -322,15 +343,20 @@ export const applyMlPipeline = createServerFn({ method: "POST" })
         throw new Error(errMsg);
       }
 
-      result = (await pyRes.json()) as { csv: string; rows: number; columns: number; log: string[] };
+      result = (await pyRes.json()) as {
+        csv: string;
+        rows: number;
+        columns: number;
+        log: string[];
+      };
     } catch (err: any) {
-      const isNetworkError = !err.status && (
-        err instanceof TypeError ||
-        err.message?.includes("fetch") ||
-        err.code === "ECONNREFUSED" ||
-        err.message?.includes("connect") ||
-        err.message?.includes("Failed to fetch")
-      );
+      const isNetworkError =
+        !err.status &&
+        (err instanceof TypeError ||
+          err.message?.includes("fetch") ||
+          err.code === "ECONNREFUSED" ||
+          err.message?.includes("connect") ||
+          err.message?.includes("Failed to fetch"));
       if (isNetworkError) {
         console.warn("Python microservice offline. Falling back to JS transform. Error:", err);
         result = fallbackTransform(csvText, data.steps);
@@ -349,7 +375,11 @@ export const applyMlPipeline = createServerFn({ method: "POST" })
     if (upErr) throw new Error(`Storage upload failed: ${upErr.message}`);
 
     // Fetch existing pipeline if any, and append new ML steps
-    const { data: existingData } = await supabase.from("datasets").select("pipeline").eq("id", data.datasetId).single();
+    const { data: existingData } = await supabase
+      .from("datasets")
+      .select("pipeline")
+      .eq("id", data.datasetId)
+      .single();
     const existingPipeline = Array.isArray(existingData?.pipeline) ? existingData.pipeline : [];
     const updatedPipeline = [...existingPipeline, ...data.steps];
 
@@ -380,7 +410,10 @@ export const augmentDataset = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => augmentInput.parse(input))
   .handler(async ({ data }) => {
     const supabase = getAuthedClient();
-    const { data: { user }, error: uErr } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: uErr,
+    } = await supabase.auth.getUser();
     if (uErr || !user) throw new Error("Not authenticated");
 
     const { csvText } = await getCsvFromStorage(supabase, data.datasetId);
@@ -421,13 +454,13 @@ export const augmentDataset = createServerFn({ method: "POST" })
         after: Record<string, number>;
       };
     } catch (err: any) {
-      const isNetworkError = !err.status && (
-        err instanceof TypeError ||
-        err.message?.includes("fetch") ||
-        err.code === "ECONNREFUSED" ||
-        err.message?.includes("connect") ||
-        err.message?.includes("Failed to fetch")
-      );
+      const isNetworkError =
+        !err.status &&
+        (err instanceof TypeError ||
+          err.message?.includes("fetch") ||
+          err.code === "ECONNREFUSED" ||
+          err.message?.includes("connect") ||
+          err.message?.includes("Failed to fetch"));
       if (isNetworkError) {
         console.warn("Python microservice offline. Falling back to JS augment. Error:", err);
         result = fallbackAugment(csvText, data.method, data.target, data.options);
@@ -446,11 +479,15 @@ export const augmentDataset = createServerFn({ method: "POST" })
     if (upErr) throw new Error(`Storage upload failed: ${upErr.message}`);
 
     // Append augment step to the pipeline
-    const { data: existingData } = await supabase.from("datasets").select("pipeline").eq("id", data.datasetId).single();
+    const { data: existingData } = await supabase
+      .from("datasets")
+      .select("pipeline")
+      .eq("id", data.datasetId)
+      .single();
     const existingPipeline = Array.isArray(existingData?.pipeline) ? existingData.pipeline : [];
     const updatedPipeline = [
       ...existingPipeline,
-      { kind: "augment", method: data.method, target: data.target, options: data.options }
+      { kind: "augment", method: data.method, target: data.target, options: data.options },
     ];
 
     // Update database record

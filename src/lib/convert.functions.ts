@@ -28,7 +28,9 @@ function getAuthedClient() {
   });
 }
 
-async function extractTextFromPdf(buf: ArrayBuffer): Promise<{ text: string; pageTexts: string[] }> {
+async function extractTextFromPdf(
+  buf: ArrayBuffer,
+): Promise<{ text: string; pageTexts: string[] }> {
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: new Uint8Array(buf) });
   try {
@@ -62,7 +64,9 @@ async function ocrPdf(buf: ArrayBuffer, filename: string): Promise<string> {
     ParsedResults?: Array<{ ParsedText?: string }>;
   };
   if (json.IsErroredOnProcessing) {
-    const msg = Array.isArray(json.ErrorMessage) ? json.ErrorMessage.join("; ") : (json.ErrorMessage || "OCR failed");
+    const msg = Array.isArray(json.ErrorMessage)
+      ? json.ErrorMessage.join("; ")
+      : json.ErrorMessage || "OCR failed";
     throw new Error(msg);
   }
   return (json.ParsedResults || []).map((p) => p.ParsedText || "").join("\n\n");
@@ -71,12 +75,11 @@ async function ocrPdf(buf: ArrayBuffer, filename: string): Promise<string> {
 function textToDocxBuffer(text: string): Promise<Uint8Array> {
   const paras = text.split(/\n{2,}/).map((block) => {
     const lines = block.split(/\n/);
-    const isHeading = lines.length === 1 && lines[0].length < 80 && /^[A-Z0-9].{0,80}$/.test(lines[0].trim());
+    const isHeading =
+      lines.length === 1 && lines[0].length < 80 && /^[A-Z0-9].{0,80}$/.test(lines[0].trim());
     return new Paragraph({
       heading: isHeading ? HeadingLevel.HEADING_2 : undefined,
-      children: lines.map((l, i) =>
-        new TextRun({ text: l, break: i === 0 ? 0 : 1 })
-      ),
+      children: lines.map((l, i) => new TextRun({ text: l, break: i === 0 ? 0 : 1 })),
       spacing: { after: 160 },
     });
   });
@@ -85,26 +88,43 @@ function textToDocxBuffer(text: string): Promise<Uint8Array> {
     styles: {
       default: { document: { run: { font: "Calibri", size: 22 } } },
     },
-    sections: [{
-      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
-      children: paras.length ? paras : [new Paragraph("(empty document)")],
-    }],
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: 12240, height: 15840 },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+          },
+        },
+        children: paras.length ? paras : [new Paragraph("(empty document)")],
+      },
+    ],
   });
   return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
 }
 
 function textToCsv(text: string): string {
   // Heuristic: each non-empty line becomes a row; split on runs of 2+ spaces or tabs.
-  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  const rows = lines.map((l) => l.split(/\t|\s{2,}/).map((c) => c.trim()).filter(Boolean));
+  const lines = text
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const rows = lines.map((l) =>
+    l
+      .split(/\t|\s{2,}/)
+      .map((c) => c.trim())
+      .filter(Boolean),
+  );
   const maxCols = rows.reduce((m, r) => Math.max(m, r.length), 1);
   return rows
     .map((r) => {
       const padded = [...r, ...Array(maxCols - r.length).fill("")];
-      return padded.map((cell) => {
-        const s = cell.replace(/"/g, '""');
-        return /[",\n]/.test(s) ? `"${s}"` : s;
-      }).join(",");
+      return padded
+        .map((cell) => {
+          const s = cell.replace(/"/g, '""');
+          return /[",\n]/.test(s) ? `"${s}"` : s;
+        })
+        .join(",");
     })
     .join("\n");
 }
@@ -114,22 +134,38 @@ export const convertPdf = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
     const supabase = getAuthedClient();
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
     if (userErr || !user) throw new Error("Not authenticated");
 
     const { data: doc, error: docErr } = await supabase
-      .from("documents").select("*").eq("id", data.documentId).single();
+      .from("documents")
+      .select("*")
+      .eq("id", data.documentId)
+      .single();
     if (docErr || !doc) throw new Error("Document not found");
 
     // Insert pending conversion row
     const { data: conv, error: convInsertErr } = await supabase
       .from("conversions")
-      .insert({ user_id: user.id, document_id: doc.id, target_format: data.format, status: "processing", ocr: data.ocr })
-      .select().single();
-    if (convInsertErr || !conv) throw new Error(convInsertErr?.message || "Could not create conversion");
+      .insert({
+        user_id: user.id,
+        document_id: doc.id,
+        target_format: data.format,
+        status: "processing",
+        ocr: data.ocr,
+      })
+      .select()
+      .single();
+    if (convInsertErr || !conv)
+      throw new Error(convInsertErr?.message || "Could not create conversion");
 
     try {
-      const { data: file, error: dlErr } = await supabase.storage.from("documents").download(doc.storage_path);
+      const { data: file, error: dlErr } = await supabase.storage
+        .from("documents")
+        .download(doc.storage_path);
       if (dlErr || !file) throw new Error(dlErr?.message || "Could not download PDF");
       const buf = await file.arrayBuffer();
 
@@ -164,10 +200,13 @@ export const convertPdf = createServerFn({ method: "POST" })
 
       const baseName = doc.filename.replace(/\.pdf$/i, "");
       const outPath = `${user.id}/conversions/${conv.id}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("documents").upload(outPath, outBytes, { contentType: outMime, upsert: true });
+      const { error: upErr } = await supabase.storage
+        .from("documents")
+        .upload(outPath, outBytes, { contentType: outMime, upsert: true });
       if (upErr) throw new Error(upErr.message);
 
-      const { error: updErr } = await supabase.from("conversions")
+      const { error: updErr } = await supabase
+        .from("conversions")
         .update({ status: "done", output_path: outPath })
         .eq("id", conv.id);
       if (updErr) throw new Error(updErr.message);

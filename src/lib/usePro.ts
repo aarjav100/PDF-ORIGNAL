@@ -9,22 +9,41 @@ export function usePro() {
 
   useEffect(() => {
     let alive = true;
-    if (!user) { setIsPro(false); setLoading(false); return; }
-    supabase.from("profiles").select("is_pro").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (!alive) return;
-      setIsPro(!!data?.is_pro);
+    if (!user) {
+      setIsPro(false);
       setLoading(false);
-    });
+      return;
+    }
+    supabase
+      .from("profiles")
+      .select("is_pro")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!alive) return;
+        setIsPro(!!data?.is_pro);
+        setLoading(false);
+      });
     const ch = supabase.channel(`pro-${user.id}-${Math.random().toString(36).slice(2)}`);
-    ch.on("postgres_changes" as never, { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` }, (p: { new: { is_pro?: boolean } }) => {
-      setIsPro(!!p.new?.is_pro);
-    }).subscribe();
-    return () => { alive = false; supabase.removeChannel(ch); };
+    ch.on(
+      "postgres_changes" as never,
+      { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+      (p: { new: { is_pro?: boolean } }) => {
+        setIsPro(!!p.new?.is_pro);
+      },
+    ).subscribe();
+    return () => {
+      alive = false;
+      supabase.removeChannel(ch);
+    };
   }, [user]);
 
   const activatePro = async () => {
     if (!user) return;
-    await supabase.from("profiles").update({ is_pro: true, pro_since: new Date().toISOString() }).eq("id", user.id);
+    await supabase
+      .from("profiles")
+      .update({ is_pro: true, pro_since: new Date().toISOString() })
+      .eq("id", user.id);
     setIsPro(true);
   };
   const deactivatePro = async () => {

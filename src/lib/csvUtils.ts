@@ -37,7 +37,10 @@ export function isMissing(v: Cell): boolean {
   return false;
 }
 
-export function parseCsv(file: File, onProgress?: (pct: number) => void): Promise<{ rows: Row[]; columns: string[] }> {
+export function parseCsv(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<{ rows: Row[]; columns: string[] }> {
   return new Promise((resolve, reject) => {
     const rows: Row[] = [];
     let columns: string[] = [];
@@ -65,16 +68,34 @@ export function parseCsv(file: File, onProgress?: (pct: number) => void): Promis
 }
 
 function inferDtype(values: Cell[]): Dtype {
-  let num = 0, bool = 0, date = 0, nonNull = 0;
+  let num = 0,
+    bool = 0,
+    date = 0,
+    nonNull = 0;
   for (const v of values) {
     if (isMissing(v)) continue;
     nonNull++;
-    if (typeof v === "number") { num++; continue; }
-    if (typeof v === "boolean") { bool++; continue; }
+    if (typeof v === "number") {
+      num++;
+      continue;
+    }
+    if (typeof v === "boolean") {
+      bool++;
+      continue;
+    }
     const s = String(v).trim();
-    if (s === "true" || s === "false") { bool++; continue; }
-    if (!isNaN(Number(s)) && s !== "") { num++; continue; }
-    if (!isNaN(Date.parse(s)) && /\d{4}|\d{1,2}[/-]\d{1,2}/.test(s)) { date++; continue; }
+    if (s === "true" || s === "false") {
+      bool++;
+      continue;
+    }
+    if (!isNaN(Number(s)) && s !== "") {
+      num++;
+      continue;
+    }
+    if (!isNaN(Date.parse(s)) && /\d{4}|\d{1,2}[/-]\d{1,2}/.test(s)) {
+      date++;
+      continue;
+    }
   }
   if (!nonNull) return "text";
   if (bool / nonNull > 0.95) return "boolean";
@@ -99,7 +120,8 @@ function quantile(sorted: number[], q: number): number {
   const pos = (sorted.length - 1) * q;
   const base = Math.floor(pos);
   const rest = pos - base;
-  if (sorted[base + 1] !== undefined) return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+  if (sorted[base + 1] !== undefined)
+    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
   return sorted[base];
 }
 
@@ -121,7 +143,10 @@ export function profileDataset(rows: Row[], columns: string[]): DatasetProfile {
     const unique = new Set(present.map(String)).size;
     const stat: ColumnStat = { name, dtype, missing, unique };
     if (dtype === "numeric") {
-      const nums = present.map(toNum).filter((n): n is number => n !== null).sort((a, b) => a - b);
+      const nums = present
+        .map(toNum)
+        .filter((n): n is number => n !== null)
+        .sort((a, b) => a - b);
       if (nums.length) {
         const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
         const variance = nums.reduce((a, b) => a + (b - mean) ** 2, 0) / nums.length;
@@ -164,7 +189,12 @@ export function toCsv(rows: Row[], columns: string[]): string {
 
 export type CleaningStep =
   | { kind: "drop_missing_rows"; columns?: string[] }
-  | { kind: "fill_numeric"; column: string; method: "mean" | "median" | "mode" | "constant"; constant?: number }
+  | {
+      kind: "fill_numeric";
+      column: string;
+      method: "mean" | "median" | "mode" | "constant";
+      constant?: number;
+    }
   | { kind: "fill_categorical"; column: string; method: "mode" | "constant"; constant?: string }
   | { kind: "drop_duplicates" }
   | { kind: "outliers_iqr"; column: string; action: "remove" | "cap" }
@@ -180,14 +210,19 @@ function mode<T extends Cell>(values: T[]): T | undefined {
   for (const v of values) {
     const k = String(v);
     const e = counts.get(k);
-    if (e) e.n++; else counts.set(k, { v, n: 1 });
+    if (e) e.n++;
+    else counts.set(k, { v, n: 1 });
   }
   let best: { v: T; n: number } | undefined;
   for (const e of counts.values()) if (!best || e.n > best.n) best = e;
   return best?.v;
 }
 
-export function applyCleaning(initial: Row[], columns: string[], steps: CleaningStep[]): CleaningResult {
+export function applyCleaning(
+  initial: Row[],
+  columns: string[],
+  steps: CleaningStep[],
+): CleaningResult {
   let rows = initial.map((r) => ({ ...r }));
   const log: string[] = [];
 
@@ -197,27 +232,45 @@ export function applyCleaning(initial: Row[], columns: string[], steps: Cleaning
       case "drop_missing_rows": {
         const cols = step.columns?.length ? step.columns : columns;
         rows = rows.filter((r) => !cols.some((c) => isMissing(r[c])));
-        log.push(`Removed ${before - rows.length} rows with missing values${step.columns?.length ? ` in ${step.columns.join(", ")}` : ""}.`);
+        log.push(
+          `Removed ${before - rows.length} rows with missing values${step.columns?.length ? ` in ${step.columns.join(", ")}` : ""}.`,
+        );
         break;
       }
       case "fill_numeric": {
-        const nums = rows.map((r) => toNum(r[step.column])).filter((n): n is number => n !== null).sort((a, b) => a - b);
+        const nums = rows
+          .map((r) => toNum(r[step.column]))
+          .filter((n): n is number => n !== null)
+          .sort((a, b) => a - b);
         let fill: number | null = null;
-        if (step.method === "mean") fill = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+        if (step.method === "mean")
+          fill = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
         else if (step.method === "median") fill = nums.length ? quantile(nums, 0.5) : 0;
         else if (step.method === "mode") fill = mode(nums) ?? 0;
         else if (step.method === "constant") fill = step.constant ?? 0;
         let n = 0;
-        for (const r of rows) if (isMissing(r[step.column])) { r[step.column] = fill; n++; }
-        log.push(`Filled ${n} missing values in "${step.column}" with ${step.method}${fill !== null ? ` (${(+fill).toFixed(3)})` : ""}.`);
+        for (const r of rows)
+          if (isMissing(r[step.column])) {
+            r[step.column] = fill;
+            n++;
+          }
+        log.push(
+          `Filled ${n} missing values in "${step.column}" with ${step.method}${fill !== null ? ` (${(+fill).toFixed(3)})` : ""}.`,
+        );
         break;
       }
       case "fill_categorical": {
         const present = rows.map((r) => r[step.column]).filter((v) => !isMissing(v));
         const fill = step.method === "mode" ? (mode(present) ?? "") : (step.constant ?? "");
         let n = 0;
-        for (const r of rows) if (isMissing(r[step.column])) { r[step.column] = fill as Cell; n++; }
-        log.push(`Filled ${n} missing values in "${step.column}" with ${step.method}${typeof fill === "string" ? ` ("${fill}")` : ""}.`);
+        for (const r of rows)
+          if (isMissing(r[step.column])) {
+            r[step.column] = fill as Cell;
+            n++;
+          }
+        log.push(
+          `Filled ${n} missing values in "${step.column}" with ${step.method}${typeof fill === "string" ? ` ("${fill}")` : ""}.`,
+        );
         break;
       }
       case "drop_duplicates": {
@@ -232,8 +285,14 @@ export function applyCleaning(initial: Row[], columns: string[], steps: Cleaning
         break;
       }
       case "outliers_iqr": {
-        const nums = rows.map((r) => toNum(r[step.column])).filter((n): n is number => n !== null).sort((a, b) => a - b);
-        if (!nums.length) { log.push(`Skipped outliers on "${step.column}" (no numeric values).`); break; }
+        const nums = rows
+          .map((r) => toNum(r[step.column]))
+          .filter((n): n is number => n !== null)
+          .sort((a, b) => a - b);
+        if (!nums.length) {
+          log.push(`Skipped outliers on "${step.column}" (no numeric values).`);
+          break;
+        }
         const q1 = quantile(nums, 0.25);
         const q3 = quantile(nums, 0.75);
         const iqr = q3 - q1;
@@ -244,16 +303,25 @@ export function applyCleaning(initial: Row[], columns: string[], steps: Cleaning
             const v = toNum(r[step.column]);
             return v === null || (v >= lo && v <= hi);
           });
-          log.push(`Removed ${before - rows.length} outliers in "${step.column}" (IQR bounds [${lo.toFixed(2)}, ${hi.toFixed(2)}]).`);
+          log.push(
+            `Removed ${before - rows.length} outliers in "${step.column}" (IQR bounds [${lo.toFixed(2)}, ${hi.toFixed(2)}]).`,
+          );
         } else {
           let n = 0;
           for (const r of rows) {
             const v = toNum(r[step.column]);
             if (v === null) continue;
-            if (v < lo) { r[step.column] = lo; n++; }
-            else if (v > hi) { r[step.column] = hi; n++; }
+            if (v < lo) {
+              r[step.column] = lo;
+              n++;
+            } else if (v > hi) {
+              r[step.column] = hi;
+              n++;
+            }
           }
-          log.push(`Capped ${n} outliers in "${step.column}" to [${lo.toFixed(2)}, ${hi.toFixed(2)}].`);
+          log.push(
+            `Capped ${n} outliers in "${step.column}" to [${lo.toFixed(2)}, ${hi.toFixed(2)}].`,
+          );
         }
         break;
       }

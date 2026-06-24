@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { usePro } from "@/lib/usePro";
 import { trackAdEvent } from "@/lib/adTracking";
 
-const CLIENT_ID = (import.meta.env.VITE_ADSENSE_CLIENT as string | undefined) || "ca-pub-8816514726616311";
+const CLIENT_ID =
+  (import.meta.env.VITE_ADSENSE_CLIENT as string | undefined) || "ca-pub-8816514726616311";
 
 declare global {
   interface Window {
@@ -11,16 +12,24 @@ declare global {
 }
 
 interface AdSlotProps {
-  slot: string;           // AdSense ad slot id
-  placement: string;      // dashboard-banner, dashboard-native, etc.
+  slot: string; // AdSense ad slot id
+  placement: string; // dashboard-banner, dashboard-native, etc.
   format?: "auto" | "fluid" | "rectangle" | "horizontal";
-  layoutKey?: string;     // for native/in-feed
+  layoutKey?: string; // for native/in-feed
   className?: string;
   minHeight?: number;
   label?: string;
 }
 
-export function AdSlot({ slot, placement, format = "auto", layoutKey, className = "", minHeight = 100, label = "Advertisement" }: AdSlotProps) {
+export function AdSlot({
+  slot,
+  placement,
+  format = "auto",
+  layoutKey,
+  className = "",
+  minHeight = 100,
+  label = "Advertisement",
+}: AdSlotProps) {
   const { isPro, loading } = usePro();
   const ref = useRef<HTMLModElement>(null);
   const tracked = useRef(false);
@@ -56,10 +65,13 @@ export function AdSlot({ slot, placement, format = "auto", layoutKey, className 
         role="complementary"
         aria-label={label}
       >
-        <span className="absolute left-2 top-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</span>
+        <span className="absolute left-2 top-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
         <div className="flex h-full min-h-[inherit] items-center justify-center p-6 text-center">
           <p className="text-xs text-muted-foreground">
-            Ad slot <span className="font-mono">{placement}</span> · configure <span className="font-mono">VITE_ADSENSE_CLIENT</span> to serve live ads
+            Ad slot <span className="font-mono">{placement}</span> · configure{" "}
+            <span className="font-mono">VITE_ADSENSE_CLIENT</span> to serve live ads
           </p>
         </div>
       </div>
@@ -68,7 +80,9 @@ export function AdSlot({ slot, placement, format = "auto", layoutKey, className 
 
   return (
     <div className={`relative ${className}`} onClickCapture={onClickCapture}>
-      <span className="absolute -top-4 left-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="absolute -top-4 left-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       <ins
         ref={ref}
         className="adsbygoogle block"

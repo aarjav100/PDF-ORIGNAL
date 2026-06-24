@@ -7,7 +7,9 @@ const KEY = "paperflow-theme";
 export function applyStoredTheme() {
   if (typeof window === "undefined") return;
   const stored = localStorage.getItem(KEY);
-  const dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = stored
+    ? stored === "dark"
+    : window.matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.classList.toggle("dark", dark);
 }
 

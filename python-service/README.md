@@ -6,10 +6,10 @@ scaling) lives in this small FastAPI service that you deploy yourself.
 
 ## Endpoints
 
-| Method | Path         | Body                                                                 |
-|--------|--------------|----------------------------------------------------------------------|
-| GET    | `/health`    | —                                                                    |
-| POST   | `/transform` | `{ "csv": "<csv string>", "steps": [{ "kind": "...", "columns": [...], "options": {...} }] }` |
+| Method | Path         | Body                                                                                           |
+| ------ | ------------ | ---------------------------------------------------------------------------------------------- |
+| GET    | `/health`    | —                                                                                              |
+| POST   | `/transform` | `{ "csv": "<csv string>", "steps": [{ "kind": "...", "columns": [...], "options": {...} }] }`  |
 | POST   | `/augment`   | `{ "csv": "<csv string>", "method": "smote"\|"random_over"\|"random_under", "target": "col" }` |
 
 All POST endpoints require `Authorization: Bearer <PAPERFLOW_PY_TOKEN>`.
@@ -32,6 +32,7 @@ uvicorn main:app --reload --port 8080
 ## Deploy options
 
 ### Fly.io
+
 ```bash
 fly launch --no-deploy
 fly secrets set PAPERFLOW_PY_TOKEN=$(openssl rand -hex 32)
@@ -39,12 +40,14 @@ fly deploy
 ```
 
 ### Render / Railway
+
 - Connect this folder as a service.
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 - Env: set `PAPERFLOW_PY_TOKEN` to a random secret.
 
 ### Docker
+
 ```bash
 docker build -t paperflow-py .
 docker run -p 8080:8080 -e PAPERFLOW_PY_TOKEN=devtoken paperflow-py

@@ -1,8 +1,23 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileText, Loader2, ChevronUp, ChevronDown, Check, Trash2, Combine, Upload } from "lucide-react";
+import {
+  FileText,
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  Trash2,
+  Combine,
+  Upload,
+} from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -26,7 +41,17 @@ interface MergeItem {
   file?: File; // only for local
 }
 
-export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { open: boolean; onOpenChange: (open: boolean) => void; documents: DocLite[]; onMerged: () => void }) {
+export function MergePdfsDialog({
+  open,
+  onOpenChange,
+  documents,
+  onMerged,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  documents: DocLite[];
+  onMerged: () => void;
+}) {
   const { user } = useAuth();
   const [mergeItems, setMergeItems] = useState<MergeItem[]>([]);
   const [outputName, setOutputName] = useState("merged_document.pdf");
@@ -124,10 +149,14 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
       // Process and download buffers
       for (let i = 0; i < mergeItems.length; i++) {
         const item = mergeItems[i];
-        
+
         if (item.source === "workspace") {
-          toast.info(`Downloading workspace file "${item.filename}"... (${i + 1}/${mergeItems.length})`);
-          const { data: blob, error: dlErr } = await supabase.storage.from("documents").download(item.storage_path!);
+          toast.info(
+            `Downloading workspace file "${item.filename}"... (${i + 1}/${mergeItems.length})`,
+          );
+          const { data: blob, error: dlErr } = await supabase.storage
+            .from("documents")
+            .download(item.storage_path!);
           if (dlErr || !blob) {
             throw new Error(`Failed to download "${item.filename}"`);
           }
@@ -144,7 +173,7 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
       }
 
       toast.info("Merging PDFs client-side...");
-      
+
       // Perform client-side merge using pdf-lib
       const mergedPdf = await PDFDocument.create();
       for (const buf of pdfBuffers) {
@@ -152,7 +181,7 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
         const pages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
         pages.forEach((page) => mergedPdf.addPage(page));
       }
-      
+
       const mergedBytes = await mergedPdf.save();
 
       // Format filename
@@ -164,7 +193,7 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
       const path = `${user.id}/uploads/${crypto.randomUUID()}-${safeFilename}`;
 
       toast.info("Uploading merged PDF to storage...");
-      
+
       // Upload final PDF to Supabase Storage
       const { error: upErr } = await supabase.storage.from("documents").upload(path, mergedBytes, {
         contentType: "application/pdf",
@@ -193,9 +222,7 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
   };
 
   const fmtBytes = (b: number) => {
-    return b < 1024 * 1024
-      ? `${(b / 1024).toFixed(0)} KB`
-      : `${(b / 1024 / 1024).toFixed(1)} MB`;
+    return b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
   };
 
   return (
@@ -206,7 +233,8 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
             <Combine className="h-5 w-5 text-primary" /> Merge Multiple PDFs
           </DialogTitle>
           <DialogDescription>
-            Select PDF files from your workspace or upload them from your computer, arrange them, and merge them into one PDF.
+            Select PDF files from your workspace or upload them from your computer, arrange them,
+            and merge them into one PDF.
           </DialogDescription>
         </DialogHeader>
 
@@ -239,10 +267,14 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
                       >
                         <span className="truncate pr-2">{d.filename}</span>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="font-mono text-[9px] opacity-75">{fmtBytes(d.size_bytes)}</span>
+                          <span className="font-mono text-[9px] opacity-75">
+                            {fmtBytes(d.size_bytes)}
+                          </span>
                           <div
                             className={`flex h-4 w-4 items-center justify-center rounded-full border border-border text-[9px] font-bold ${
-                              selected ? "bg-primary text-primary-foreground border-primary" : "bg-background"
+                              selected
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background"
                             }`}
                           >
                             {selected ? matchedIdx + 1 : ""}
@@ -264,7 +296,9 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
                 <label className="flex flex-col items-center justify-center cursor-pointer text-center w-full h-full">
                   <Upload className="h-7 w-7 text-muted-foreground mb-2" />
                   <span className="text-xs font-medium">Click to upload PDFs</span>
-                  <span className="text-[10px] text-muted-foreground mt-1">Select multiple files if needed</span>
+                  <span className="text-[10px] text-muted-foreground mt-1">
+                    Select multiple files if needed
+                  </span>
                   <input
                     type="file"
                     multiple
@@ -294,11 +328,13 @@ export function MergePdfsDialog({ open, onOpenChange, documents, onMerged }: { o
                         {index + 1}.
                       </span>
                       <span className="truncate font-medium">{item.filename}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide border flex-shrink-0 ${
-                        item.source === "workspace" 
-                          ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/20 dark:border-blue-800 dark:text-blue-400" 
-                          : "bg-green-50 border-green-200 text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-400"
-                      }`}>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide border flex-shrink-0 ${
+                          item.source === "workspace"
+                            ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/20 dark:border-blue-800 dark:text-blue-400"
+                            : "bg-green-50 border-green-200 text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-400"
+                        }`}
+                      >
                         {item.source === "workspace" ? "Workspace" : "Computer"}
                       </span>
                     </div>
