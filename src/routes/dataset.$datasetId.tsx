@@ -197,6 +197,127 @@ function DatasetView() {
   const addStep = (step: CleaningStep) => setSteps((s) => [...s, step]);
   const removeStep = (i: number) => setSteps((s) => s.filter((_, idx) => idx !== i));
 
+  // AI Auto-Fix Functions
+  const autoFixMissing = () => {
+    const newSteps: CleaningStep[] = [];
+    currentProfile?.columns.forEach((c) => {
+      if (c.missing > 0) {
+        if (c.dtype === "numeric") {
+          newSteps.push({ kind: "fill_numeric", column: c.name, method: "mean" });
+        } else {
+          newSteps.push({ kind: "fill_categorical", column: c.name, method: "mode" });
+        }
+      }
+    });
+    if (newSteps.length > 0) {
+      setSteps((s) => [...s, ...newSteps]);
+      toast.success(`Added ${newSteps.length} steps to handle missing values`);
+    } else {
+      toast.info("No missing values found to fix!");
+    }
+  };
+
+  const autoFixDuplicates = () => {
+    if (steps.some((s) => s.kind === "drop_duplicates")) {
+      toast.info("Duplicate removal is already in the pipeline.");
+      return;
+    }
+    setSteps((s) => [...s, { kind: "drop_duplicates" }]);
+    toast.success("Added step to drop duplicate rows");
+  };
+
+  const autoFixOutliers = () => {
+    const newSteps: CleaningStep[] = [];
+    currentProfile?.columns.forEach((c) => {
+      if (c.dtype === "numeric") {
+        newSteps.push({ kind: "outliers_iqr", column: c.name, action: "cap" });
+      }
+    });
+    if (newSteps.length > 0) {
+      setSteps((s) => [...s, ...newSteps]);
+      toast.success(`Added ${newSteps.length} outlier capping steps`);
+    } else {
+      toast.info("No numeric columns found for outlier processing.");
+    }
+  };
+
+  const autoFixAll = () => {
+    // 1. Missing values
+    const missingSteps: CleaningStep[] = [];
+    currentProfile?.columns.forEach((c) => {
+      if (c.missing > 0) {
+        if (c.dtype === "numeric") {
+          missingSteps.push({ kind: "fill_numeric", column: c.name, method: "mean" });
+        } else {
+          missingSteps.push({ kind: "fill_categorical", column: c.name, method: "mode" });
+        }
+      }
+    });
+    
+    // 2. Duplicates
+    const hasDupStep = steps.some((s) => s.kind === "drop_duplicates");
+    const dupSteps: CleaningStep[] = [];
+    if (!hasDupStep && (profile?.duplicateRows ?? 0) > 0) {
+      dupSteps.push({ kind: "drop_duplicates" });
+    }
+    
+    // 3. Outliers
+    const outlierSteps: CleaningStep[] = [];
+    currentProfile?.columns.forEach((c) => {
+      if (c.dtype === "numeric") {
+        outlierSteps.push({ kind: "outliers_iqr", column: c.name, action: "cap" });
+      }
+    });
+
+    const combined = [...missingSteps, ...dupSteps, ...outlierSteps];
+    if (combined.length > 0) {
+      setSteps((s) => [...s, ...combined]);
+      toast.success(`Applied all ${combined.length} recommended fixes! Check the Preview or Pipeline tab.`);
+    } else {
+      toast.info("No unresolved issues detected!");
+    }
+  };
+
+  const handleApplySuggestion = (step: any) => {
+    const name = step.step.toLowerCase();
+    const colName = step.column;
+
+    if (name.includes("missing") || name.includes("impute") || name.includes("fill") || name.includes("null")) {
+      if (colName) {
+        const col = currentProfile?.columns.find((c) => c.name === colName);
+        if (col) {
+          if (col.dtype === "numeric") {
+            addStep({ kind: "fill_numeric", column: colName, method: "mean" });
+          } else {
+            addStep({ kind: "fill_categorical", column: colName, method: "mode" });
+          }
+          toast.success(`Imputed missing values for ${colName}`);
+        } else {
+          addStep({ kind: "fill_categorical", column: colName, method: "mode" });
+          toast.success(`Imputed missing values for ${colName}`);
+        }
+      } else {
+        autoFixMissing();
+      }
+    } else if (name.includes("duplicate") || name.includes("deduplicate")) {
+      autoFixDuplicates();
+    } else if (name.includes("outlier") || name.includes("iqr")) {
+      if (colName) {
+        addStep({ kind: "outliers_iqr", column: colName, action: "cap" });
+        toast.success(`Capped outliers for ${colName}`);
+      } else {
+        autoFixOutliers();
+      }
+    } else if (name.includes("drop") || name.includes("remove") || name.includes("delete")) {
+      if (colName) {
+        addStep({ kind: "drop_columns", columns: [colName] });
+        toast.success(`Dropped column ${colName}`);
+      }
+    } else {
+      toast.info(`Could not automatically apply step: "${step.step}". Please configure it manually in the Cleaning Pipeline tab.`);
+    }
+  };
+
   const handleApplyMl = async () => {
     if (!mlSteps.length) return;
     setApplyingMl(true);
@@ -508,31 +629,72 @@ function DatasetView() {
                     </div>
                   </div>
                   {meta.analysis.dataQuality.issues.length > 0 && (
-                    <ul className="mt-4 space-y-1 text-sm">
-                      {meta.analysis.dataQuality.issues.map((i, k) => (
-                        <li key={k} className="flex gap-2">
-                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                          {i}
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/60 pt-4">
+                      <p className="text-xs text-muted-foreground">
+                        AI found {meta.analysis.dataQuality.issues.length} data quality issues in this dataset.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={autoFixAll}
+                        className="shrink-0 gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Fix All Issues Automatically
+                      </Button>
+                    </div>
                   )}
                 </Card>
 
-                <Card className="p-4">
-                  <p className="mb-1 font-display font-semibold">Missing values</p>
-                  <p className="text-sm text-muted-foreground">
-                    {meta.analysis.missingValueAnalysis}
-                  </p>
+                <Card className="p-4 flex flex-col justify-between gap-4">
+                  <div>
+                    <p className="mb-1 font-display font-semibold">Missing values</p>
+                    <p className="text-sm text-muted-foreground">
+                      {meta.analysis.missingValueAnalysis}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={autoFixMissing}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-accent animate-pulse" />
+                    Auto-fill Missing Values
+                  </Button>
                 </Card>
-                <Card className="p-4">
-                  <p className="mb-1 font-display font-semibold">Duplicates</p>
-                  <p className="text-sm text-muted-foreground">{meta.analysis.duplicateAnalysis}</p>
+
+                <Card className="p-4 flex flex-col justify-between gap-4">
+                  <div>
+                    <p className="mb-1 font-display font-semibold">Duplicates</p>
+                    <p className="text-sm text-muted-foreground">{meta.analysis.duplicateAnalysis}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={autoFixDuplicates}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-accent animate-pulse" />
+                    Remove Duplicate Rows
+                  </Button>
                 </Card>
-                <Card className="p-4">
-                  <p className="mb-1 font-display font-semibold">Outliers</p>
-                  <p className="text-sm text-muted-foreground">{meta.analysis.outlierAnalysis}</p>
+
+                <Card className="p-4 flex flex-col justify-between gap-4">
+                  <div>
+                    <p className="mb-1 font-display font-semibold">Outliers</p>
+                    <p className="text-sm text-muted-foreground">{meta.analysis.outlierAnalysis}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={autoFixOutliers}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-accent animate-pulse" />
+                    Auto-cap Outliers (IQR)
+                  </Button>
                 </Card>
+
                 {meta.analysis.classImbalance && (
                   <Card className="p-4">
                     <p className="mb-1 font-display font-semibold">
@@ -550,21 +712,32 @@ function DatasetView() {
                   </p>
                   <ol className="space-y-2 text-sm">
                     {meta.analysis.preprocessingSteps.map((s, k) => (
-                      <li key={k} className="flex gap-3 rounded-md border bg-secondary/30 p-3">
-                        <span className="font-mono text-xs text-accent">
-                          {(k + 1).toString().padStart(2, "0")}
-                        </span>
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            {s.step}
-                            {s.column && (
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                on {s.column}
-                              </span>
-                            )}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{s.rationale}</p>
+                      <li key={k} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border bg-secondary/30 p-3">
+                        <div className="flex gap-3">
+                          <span className="font-mono text-xs text-accent mt-0.5">
+                            {(k + 1).toString().padStart(2, "0")}
+                          </span>
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              {s.step}
+                              {s.column && (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  on {s.column}
+                                </span>
+                              )}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">{s.rationale}</p>
+                          </div>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleApplySuggestion(s)}
+                          className="shrink-0 text-xs gap-1.5 focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Sparkles className="h-3 w-3 text-accent" />
+                          Apply Suggestion
+                        </Button>
                       </li>
                     ))}
                   </ol>

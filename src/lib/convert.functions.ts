@@ -44,9 +44,7 @@ async function extractTextFromPdf(
 }
 
 async function ocrPdf(buf: ArrayBuffer, filename: string): Promise<string> {
-  const apiKey = process.env.OCR_SPACE_API_KEY;
-  if (!apiKey) throw new Error("OCR is not configured (missing OCR_SPACE_API_KEY)");
-
+  const apiKey = process.env.OCR_SPACE_API_KEY || "helloworld";
   const fd = new FormData();
   fd.append("apikey", apiKey);
   fd.append("language", "eng");

@@ -573,7 +573,7 @@ function Editor() {
           const canvas = document.createElement("canvas");
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          const ctx = canvas.getContext("2d")!;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
           await page.render({ canvas, canvasContext: ctx, viewport } as Parameters<
             typeof page.render
           >[0]).promise;

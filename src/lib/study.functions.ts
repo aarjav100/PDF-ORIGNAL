@@ -53,8 +53,7 @@ async function extractText(buf: ArrayBuffer): Promise<string> {
 }
 
 async function ocrFallback(buf: ArrayBuffer, filename: string): Promise<string> {
-  const apiKey = process.env.OCR_SPACE_API_KEY;
-  if (!apiKey) return "";
+  const apiKey = process.env.OCR_SPACE_API_KEY || "helloworld";
   const fd = new FormData();
   fd.append("apikey", apiKey);
   fd.append("language", "eng");
