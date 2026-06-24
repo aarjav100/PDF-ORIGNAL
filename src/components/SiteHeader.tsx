@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { FileText, LogOut, LayoutGrid, FilePlus2, Database, User, Shield, Sparkles } from "lucide-react";
+import { FileText, LogOut, LayoutGrid, FilePlus2, Database, User, Shield, Sparkles, Menu } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
 export function SiteHeader() {
@@ -47,6 +48,7 @@ export function SiteHeader() {
           <span className="font-display text-lg font-semibold tracking-tight">Paperflow</span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 md:flex">
           {user ? (
             <>
@@ -60,14 +62,14 @@ export function SiteHeader() {
                 Templates
               </Link>
               <Link to="/pricing" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" activeProps={{ className: "rounded-md px-3 py-2 text-sm font-medium text-foreground bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" }}>
-                Pricing
+                Pricing Plans
               </Link>
             </>
           ) : (
             <>
-              <a href="/#features" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Features & OCR</a>
-              <a href="/#how" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">How it works</a>
-              <Link to="/pricing" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Pricing</Link>
+              <a href="/#features" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Explore Features</a>
+              <a href="/#how" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">How It Works</a>
+              <Link to="/pricing" className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Pricing Plans</Link>
             </>
           )}
         </nav>
@@ -82,7 +84,7 @@ export function SiteHeader() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ring-offset-background transition-transform hover:scale-105">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 ring-offset-background transition-transform hover:scale-105">
                     <Avatar className="h-9 w-9 border border-border">
                       <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
                         {emailInitial}
@@ -131,10 +133,67 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm"><Link to="/auth">Sign in</Link></Button>
-              <Button asChild size="sm"><Link to="/auth" search={{ mode: "signup" } as never}>Get started</Link></Button>
+              <Button asChild variant="ghost" size="sm" className="h-10"><Link to="/auth">Sign in</Link></Button>
+              <Button asChild size="sm" className="h-10"><Link to="/auth" search={{ mode: "signup" } as never}>Get started</Link></Button>
             </>
           )}
+
+          {/* Mobile Sheet Navigation */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-label="Open navigation menu">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] p-6">
+              <SheetHeader className="pb-6 border-b">
+                <SheetTitle className="flex items-center gap-2">
+                  <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <span className="font-display text-base font-semibold">Paperflow</span>
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-4 py-6">
+                {user ? (
+                  <>
+                    <Link to="/dashboard" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" activeProps={{ className: "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-foreground bg-secondary" }}>
+                      <LayoutGrid className="h-5 w-5" /> Dashboard
+                    </Link>
+                    <Link to="/datasets" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" activeProps={{ className: "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-foreground bg-secondary" }}>
+                      <Database className="h-5 w-5" /> Datasets
+                    </Link>
+                    <Link to="/templates" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" activeProps={{ className: "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-foreground bg-secondary" }}>
+                      <FilePlus2 className="h-5 w-5" /> Templates
+                    </Link>
+                    <Link to="/pricing" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" activeProps={{ className: "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-foreground bg-secondary" }}>
+                      <Sparkles className="h-5 w-5" /> Pricing Plans
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <a href="/#features" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      Explore Features
+                    </a>
+                    <a href="/#how" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      How It Works
+                    </a>
+                    <Link to="/pricing" className="flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" activeProps={{ className: "flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-foreground bg-secondary" }}>
+                      Pricing Plans
+                    </Link>
+                    <div className="border-t my-2 pt-4 flex flex-col gap-2">
+                      <Button asChild variant="outline" className="w-full">
+                        <Link to="/auth">Sign in</Link>
+                      </Button>
+                      <Button asChild className="w-full">
+                        <Link to="/auth" search={{ mode: "signup" } as never}>Get started</Link>
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

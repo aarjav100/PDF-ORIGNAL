@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowRight, FileText, FileType2, Sheet, Wand2, ScanText, ShieldCheck, Sparkles } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AuthProvider } from "@/lib/auth";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-accent/10">
       <SiteHeader />
       <Hero />
       <Features />
@@ -31,34 +32,65 @@ function Index() {
   );
 }
 
+function HeroForm() {
+  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    navigate({
+      to: "/auth",
+      search: { mode: "signup", email } as never,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-10 mx-auto max-w-md w-full px-4 sm:px-0">
+      <div className="flex flex-col gap-3 sm:flex-row items-stretch sm:items-center">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email address"
+          className="flex h-12 w-full rounded-md border border-input bg-card px-4 py-2 text-base shadow-sm transition-shadow placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm"
+        />
+        <Button type="submit" size="lg" className="h-12 w-full px-6 text-base sm:w-auto shrink-0 font-semibold shadow-md focus-visible:ring-2 focus-visible:ring-offset-2">
+          Get Started for Free <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function Hero() {
   return (
     <section className="relative overflow-hidden">
       <div className="bg-grid absolute inset-0 opacity-60" aria-hidden />
       <div className="absolute inset-x-0 top-0 -z-0 h-[600px] bg-[radial-gradient(ellipse_at_top,_color-mix(in_oklab,var(--accent)_18%,transparent)_0%,_transparent_60%)]" aria-hidden />
-      <div className="relative mx-auto max-w-7xl px-4 pt-12 pb-16 md:px-8 md:pt-20 md:pb-24">
+      <div className="relative mx-auto max-w-7xl px-4 pt-16 pb-20 md:px-8 md:pt-24 md:pb-28">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/60 px-3 py-1 font-mono text-xs uppercase tracking-widest text-muted-foreground backdrop-blur">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/60 px-3 py-1 font-mono text-xs uppercase tracking-widest text-accent backdrop-blur">
             <Sparkles className="h-3 w-3 text-accent" /> v1 — paper, reimagined
           </span>
-          <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
-            The PDF workspace<br />
-            <span className="gradient-text">for actual humans.</span>
+          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-7xl">
+            Convert, Edit & Automate<br />
+            <span className="gradient-text">PDFs for Your Workflow.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            Upload a PDF and turn it into a Word doc, plain text, CSV, or a reusable template — then edit it right in your browser.
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl md:leading-relaxed">
+            The fast, private PDF workspace for professionals, researchers, and creators. Convert PDFs to Word, text, or structured CSV, edit contents in-browser, and turn files into reusable templates.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row px-4 sm:px-0">
-            <Button asChild size="lg" className="h-12 w-full px-6 text-base sm:w-auto focus-visible:ring-2 focus-visible:ring-offset-2">
-              <Link to="/auth" search={{ mode: "signup" } as never} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">
-                Start for free <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 w-full px-6 text-base sm:w-auto focus-visible:ring-2 focus-visible:ring-offset-2">
-              <a href="#features" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">See features</a>
-            </Button>
+
+          <HeroForm />
+
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm">
+            <a href="#features" className="text-muted-foreground hover:text-foreground font-semibold underline underline-offset-4 hover:decoration-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm px-1">
+              Explore PDF Features
+            </a>
+            <span className="hidden sm:inline text-muted-foreground/30">|</span>
+            <span className="font-mono text-xs text-muted-foreground">No credit card. Files stay private.</span>
           </div>
-          <p className="mt-4 font-mono text-xs text-muted-foreground">No credit card. Files stay private.</p>
         </div>
 
         {/* Mock preview */}
@@ -125,16 +157,16 @@ function Features() {
     { icon: ShieldCheck, title: "Private by default", body: "Files are scoped to your account with row-level security. Only you can see them." },
   ];
   return (
-    <section id="features" className="border-y border-border bg-secondary/30 py-16 md:py-20">
+    <section id="features" className="border-y border-border bg-secondary/30 py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p className="font-mono text-xs uppercase tracking-widest text-accent">What it does</p>
-          <h2 className="mt-3 font-display text-4xl font-bold md:text-5xl">Everything you wished Acrobat did.</h2>
-          <p className="mt-4 text-lg text-muted-foreground">A focused toolkit, not a 90s file manager.</p>
+          <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl md:text-5xl">Everything you wished Acrobat did.</h2>
+          <p className="mt-4 text-base text-muted-foreground sm:text-lg">A focused toolkit, not a 90s file manager.</p>
         </div>
-        <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {items.map((it) => (
-            <div key={it.title} className="group relative bg-card p-8 transition-colors hover:bg-card/80">
+            <div key={it.title} className="group relative bg-card p-8 rounded-2xl border border-border shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-accent/30">
               <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:rotate-3">
                 <it.icon className="h-5 w-5" />
               </div>
@@ -155,12 +187,12 @@ function HowItWorks() {
     { n: "03", title: "Reuse", body: "Save it as a template. Generate new docs from the same skeleton anytime." },
   ];
   return (
-    <section id="how" className="py-16 md:py-20">
+    <section id="how" className="py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-20">
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-accent">How it works</p>
-            <h2 className="mt-3 font-display text-4xl font-bold md:text-5xl">Three moves.<br /> That's the whole thing.</h2>
+            <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl md:text-5xl">Three moves.<br /> That's the whole thing.</h2>
           </div>
           <div className="space-y-6">
             {steps.map((s) => (
@@ -181,17 +213,17 @@ function HowItWorks() {
 
 function CTA() {
   return (
-    <section className="px-4 pb-16 md:pb-20 md:px-8">
-      <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-primary px-8 py-16 text-primary-foreground md:px-16 md:py-24">
+    <section className="px-4 pb-20 md:pb-28 md:px-8">
+      <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-primary px-6 py-16 sm:px-12 sm:py-20 text-primary-foreground md:px-16 md:py-24">
         <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent/30 blur-3xl" aria-hidden />
         <div className="absolute -bottom-20 -left-10 h-72 w-72 rounded-full bg-accent/20 blur-3xl" aria-hidden />
         <div className="relative">
-          <h2 className="font-display text-4xl font-bold leading-tight md:text-5xl">Stop fighting your PDFs.</h2>
-          <p className="mt-4 max-w-xl text-lg text-primary-foreground/80">Sign up free and convert your first document in under a minute.</p>
+          <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">Stop fighting your PDFs.</h2>
+          <p className="mt-4 max-w-xl text-base text-primary-foreground/80 sm:text-lg">Sign up free and convert your first document in under a minute.</p>
           <div className="mt-8">
             <Button asChild size="lg" variant="secondary" className="h-12 w-full px-6 text-base sm:w-auto focus-visible:ring-2 focus-visible:ring-offset-2">
-              <Link to="/auth" search={{ mode: "signup" } as never} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">
-                Create your account <ArrowRight className="ml-2 h-4 w-4" />
+              <Link to="/auth" search={{ mode: "signup" } as never} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md font-semibold">
+                Create Free Account <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -203,7 +235,7 @@ function CTA() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border py-10">
+    <footer className="border-t border-border py-10 bg-card">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row md:px-8">
         <p>© {new Date().getFullYear()} Paperflow. Made with paper and pixels.</p>
         <p className="font-mono text-xs">Built on Lovable Cloud</p>

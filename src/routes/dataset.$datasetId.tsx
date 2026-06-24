@@ -226,7 +226,7 @@ function DatasetView() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-6 md:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-10 md:px-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <Link to="/datasets" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">

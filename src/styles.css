@@ -56,14 +56,14 @@
     --primary-foreground: oklch(0.985 0.012 80);
 
     /* Coral accent */
-    --accent: oklch(0.56 0.19 28);
+    --accent: oklch(0.44 0.19 28);
     --accent-foreground: oklch(0.99 0.005 80);
 
     --secondary: oklch(0.95 0.018 80);
     --secondary-foreground: oklch(0.22 0.04 260);
 
     --muted: oklch(0.95 0.012 80);
-    --muted-foreground: oklch(0.48 0.02 260);
+    --muted-foreground: oklch(0.45 0.02 260);
 
     --destructive: oklch(0.58 0.22 27);
     --destructive-foreground: oklch(0.99 0 0);
@@ -120,6 +120,17 @@
     font-feature-settings: "ss01", "cv11";
   }
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+
+  /* Accessible Keyboard Navigation Focus Indicators */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-ring) !important;
+    outline-offset: 2px !important;
+  }
 }
 
 /* Animated grid background */

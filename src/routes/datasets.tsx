@@ -138,7 +138,7 @@ function Studio() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-accent">Dataset Studio</p>

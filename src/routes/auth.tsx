@@ -11,7 +11,10 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>) => ({ mode: (s.mode as string) === "signup" ? "signup" : "signin" }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    mode: (s.mode as string) === "signup" ? "signup" : "signin",
+    email: typeof s.email === "string" ? s.email : undefined,
+  }),
   head: () => ({ meta: [{ title: "Sign in — Paperflow" }, { name: "description", content: "Sign in to your Paperflow account." }] }),
   component: AuthPage,
 });
@@ -22,10 +25,10 @@ const schema = z.object({
 });
 
 function AuthPage() {
-  const { mode: initialMode } = Route.useSearch();
+  const { mode: initialMode, email: queryEmail } = Route.useSearch();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(queryEmail || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -131,11 +134,11 @@ function AuthPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+              <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" className="h-11" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              <Input id="password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11" />
             </div>
             <Button type="submit" className="h-11 w-full" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{mode === "signup" ? "Create account" : "Sign in"}<ArrowRight className="ml-2 h-4 w-4" /></>}

@@ -61,7 +61,7 @@ function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-16">
+      <main className="mx-auto max-w-5xl px-4 py-16 md:px-8 md:py-24">
         <div className="text-center">
           <p className="font-mono text-xs uppercase tracking-widest text-accent">Pricing</p>
           <h1 className="mt-2 font-display text-4xl font-bold md:text-5xl">Simple plans, no surprises</h1>
