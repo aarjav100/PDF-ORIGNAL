@@ -56,7 +56,7 @@
     --primary-foreground: oklch(0.985 0.012 80);
 
     /* Coral accent */
-    --accent: oklch(0.7 0.19 28);
+    --accent: oklch(0.56 0.19 28);
     --accent-foreground: oklch(0.99 0.005 80);
 
     --secondary: oklch(0.95 0.018 80);
@@ -76,7 +76,7 @@
 
     --border: oklch(0.9 0.015 80);
     --input: oklch(0.9 0.015 80);
-    --ring: oklch(0.7 0.19 28);
+    --ring: oklch(0.22 0.04 260);
 
     --gradient-hero: linear-gradient(135deg, oklch(0.22 0.04 260) 0%, oklch(0.35 0.08 290) 60%, oklch(0.7 0.19 28) 100%);
     --gradient-paper: linear-gradient(180deg, oklch(0.99 0.012 80) 0%, oklch(0.96 0.018 80) 100%);

@@ -36,7 +36,7 @@ function Hero() {
     <section className="relative overflow-hidden">
       <div className="bg-grid absolute inset-0 opacity-60" aria-hidden />
       <div className="absolute inset-x-0 top-0 -z-0 h-[600px] bg-[radial-gradient(ellipse_at_top,_color-mix(in_oklab,var(--accent)_18%,transparent)_0%,_transparent_60%)]" aria-hidden />
-      <div className="relative mx-auto max-w-7xl px-4 pt-20 pb-24 md:px-8 md:pt-28 md:pb-32">
+      <div className="relative mx-auto max-w-7xl px-4 pt-12 pb-16 md:px-8 md:pt-20 md:pb-24">
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/60 px-3 py-1 font-mono text-xs uppercase tracking-widest text-muted-foreground backdrop-blur">
             <Sparkles className="h-3 w-3 text-accent" /> v1 — paper, reimagined
@@ -48,21 +48,21 @@ function Hero() {
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
             Upload a PDF and turn it into a Word doc, plain text, CSV, or a reusable template — then edit it right in your browser.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-12 px-6 text-base">
-              <Link to="/auth" search={{ mode: "signup" } as never}>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row px-4 sm:px-0">
+            <Button asChild size="lg" className="h-12 w-full px-6 text-base sm:w-auto focus-visible:ring-2 focus-visible:ring-offset-2">
+              <Link to="/auth" search={{ mode: "signup" } as never} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">
                 Start for free <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
-              <a href="#features">See features</a>
+            <Button asChild size="lg" variant="outline" className="h-12 w-full px-6 text-base sm:w-auto focus-visible:ring-2 focus-visible:ring-offset-2">
+              <a href="#features" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">See features</a>
             </Button>
           </div>
           <p className="mt-4 font-mono text-xs text-muted-foreground">No credit card. Files stay private.</p>
         </div>
 
         {/* Mock preview */}
-        <div className="relative mx-auto mt-20 max-w-5xl">
+        <div className="relative mx-auto mt-12 md:mt-16 max-w-5xl">
           <div className="absolute -inset-4 -z-10 rounded-3xl bg-[var(--gradient-hero)] opacity-20 blur-3xl" aria-hidden />
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -125,7 +125,7 @@ function Features() {
     { icon: ShieldCheck, title: "Private by default", body: "Files are scoped to your account with row-level security. Only you can see them." },
   ];
   return (
-    <section id="features" className="border-y border-border bg-secondary/30 py-24">
+    <section id="features" className="border-y border-border bg-secondary/30 py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p className="font-mono text-xs uppercase tracking-widest text-accent">What it does</p>
@@ -155,7 +155,7 @@ function HowItWorks() {
     { n: "03", title: "Reuse", body: "Save it as a template. Generate new docs from the same skeleton anytime." },
   ];
   return (
-    <section id="how" className="py-24">
+    <section id="how" className="py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-20">
           <div>
@@ -181,7 +181,7 @@ function HowItWorks() {
 
 function CTA() {
   return (
-    <section className="px-4 pb-24 md:px-8">
+    <section className="px-4 pb-16 md:pb-20 md:px-8">
       <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-primary px-8 py-16 text-primary-foreground md:px-16 md:py-24">
         <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent/30 blur-3xl" aria-hidden />
         <div className="absolute -bottom-20 -left-10 h-72 w-72 rounded-full bg-accent/20 blur-3xl" aria-hidden />
@@ -189,8 +189,8 @@ function CTA() {
           <h2 className="font-display text-4xl font-bold leading-tight md:text-5xl">Stop fighting your PDFs.</h2>
           <p className="mt-4 max-w-xl text-lg text-primary-foreground/80">Sign up free and convert your first document in under a minute.</p>
           <div className="mt-8">
-            <Button asChild size="lg" variant="secondary" className="h-12 px-6 text-base">
-              <Link to="/auth" search={{ mode: "signup" } as never}>
+            <Button asChild size="lg" variant="secondary" className="h-12 w-full px-6 text-base sm:w-auto focus-visible:ring-2 focus-visible:ring-offset-2">
+              <Link to="/auth" search={{ mode: "signup" } as never} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">
                 Create your account <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
