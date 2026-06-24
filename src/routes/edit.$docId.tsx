@@ -26,6 +26,9 @@ import { Button } from "@/components/ui/button";
 
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { generateStudyMaterials, type Flashcard, type Quiz } from "@/lib/study.functions";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Sparkles, BookOpen, HelpCircle, ChevronLeft, ChevronRight, GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/edit/$docId")({
   head: () => ({ meta: [{ title: "Edit PDF — Paperflow" }] }),
@@ -372,6 +375,63 @@ function Editor() {
   const [paragraphBlocks, setParagraphBlocks] = useState<ParagraphBlock[]>([]);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const blockRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // AI Study Assistant states
+  const [studyLoading, setStudyLoading] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  // Quiz progress states
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState<Record<number, boolean>>({});
+
+  // Load saved study materials on mount or docId change
+  useEffect(() => {
+    const saved = localStorage.getItem(`study-${docId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.flashcards && parsed.quizzes) {
+          setSummary(parsed.summary || "");
+          setFlashcards(parsed.flashcards);
+          setQuizzes(parsed.quizzes);
+        }
+      } catch (e) {
+        console.warn("Failed to load saved study materials", e);
+      }
+    } else {
+      setSummary("");
+      setFlashcards([]);
+      setQuizzes([]);
+    }
+  }, [docId]);
+
+  const handleGenerateStudy = async () => {
+    setStudyLoading(true);
+    setSummary("");
+    setFlashcards([]);
+    setQuizzes([]);
+    setSelectedAnswers({});
+    setQuizSubmitted({});
+    setActiveCardIndex(0);
+    setIsCardFlipped(false);
+    try {
+      const res = await generateStudyMaterials({ data: { documentId: docId } });
+      setSummary(res.summary);
+      setFlashcards(res.flashcards);
+      setQuizzes(res.quizzes);
+      toast.success("Generated summary, flashcards & quizzes successfully!");
+      localStorage.setItem(`study-${docId}`, JSON.stringify(res));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate study materials");
+    } finally {
+      setStudyLoading(false);
+    }
+  };
+
 
   // Tool defaults
   const [highlightColor, setHighlightColor] = useState("#fde047");
@@ -1654,7 +1714,9 @@ function Editor() {
           </span>
         </div>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
+          {/* Left Pane: Document canvas */}
+          <div className="space-y-6 min-w-0">
           {pageImages.map((src, i) => {
             const dim = pages[i];
             const xScale = dim.width / dim.pdfWidth;
@@ -2271,8 +2333,272 @@ function Editor() {
               </div>
             );
           })}
-          {/* spacer so floating toolbar doesn't cover the last page */}
-          <div className="h-28" />
+            {/* spacer so floating toolbar doesn't cover the last page */}
+            <div className="h-28" />
+          </div>
+
+          {/* Right Pane: AI Study Mode Sidebar */}
+          <aside className="lg:sticky lg:top-24 space-y-6 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 select-text">
+            {!summary && !studyLoading && (
+              <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-elegant)] text-center space-y-4">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                  <GraduationCap className="h-6 w-6" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">AI Study Workspace</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Turn this PDF into a study guide! Generate a summary, interactive flashcards, and quizzes automatically with AI.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleGenerateStudy}
+                  disabled={studyLoading}
+                  className="w-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Study Plan
+                </Button>
+              </div>
+            )}
+
+            {studyLoading && (
+              <div className="rounded-xl border border-border bg-card p-8 shadow-[var(--shadow-elegant)] text-center space-y-4">
+                <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary animate-pulse" />
+                <div className="space-y-1">
+                  <p className="font-medium text-sm animate-pulse">Processing Document</p>
+                  <p className="text-xs text-muted-foreground">AI is reading and extracting study insights...</p>
+                </div>
+              </div>
+            )}
+
+            {summary && !studyLoading && (
+              <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-elegant)] space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-sm">AI Study Assistant</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateStudy}
+                    disabled={studyLoading}
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2"
+                  >
+                    <Sparkles className="mr-1 h-3.5 w-3.5 text-primary animate-pulse" />
+                    Regenerate
+                  </Button>
+                </div>
+
+                <Tabs defaultValue="summary" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 bg-muted/65 p-1 rounded-lg">
+                    <TabsTrigger value="summary" className="text-xs flex items-center gap-1.5 focus-visible:ring-2 py-1.5 data-[state=active]:bg-background">
+                      <BookOpen className="h-3.5 w-3.5" />
+                      Summary
+                    </TabsTrigger>
+                    <TabsTrigger value="flashcards" className="text-xs flex items-center gap-1.5 focus-visible:ring-2 py-1.5 data-[state=active]:bg-background">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Cards
+                    </TabsTrigger>
+                    <TabsTrigger value="quizzes" className="text-xs flex items-center gap-1.5 focus-visible:ring-2 py-1.5 data-[state=active]:bg-background">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                      Quiz
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="summary" className="mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+                    <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+                      {summary.split("\n\n").map((p, index) => (
+                        <p key={index} className="text-xs text-muted-foreground leading-relaxed">
+                          {p.trim()}
+                        </p>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="flashcards" className="mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+                    {flashcards.length > 0 ? (
+                      <div className="space-y-4">
+                        {/* Card Container */}
+                        <div
+                          className="perspective-1000 w-full h-48 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+                          onClick={() => setIsCardFlipped(!isCardFlipped)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setIsCardFlipped(!isCardFlipped);
+                            }
+                          }}
+                          aria-label={`Flashcard ${activeCardIndex + 1}. Question: ${flashcards[activeCardIndex]?.question}. Press Enter or Space to flip for answer.`}
+                        >
+                          {/* Inner card with transitions */}
+                          <div
+                            className={`relative w-full h-full duration-500 transform-style-3d transition-transform ${
+                              isCardFlipped ? "rotate-y-180" : ""
+                            }`}
+                          >
+                            {/* Front Side: Question */}
+                            <div className="absolute inset-0 w-full h-full backface-hidden flex flex-col justify-between rounded-xl border border-border bg-card p-5 shadow-sm">
+                              <div className="flex-1 flex items-center justify-center text-center">
+                                <p className="font-semibold text-sm leading-snug">
+                                  {flashcards[activeCardIndex]?.question}
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-center uppercase tracking-wider text-muted-foreground/60 font-semibold">
+                                Question (Click to flip)
+                              </span>
+                            </div>
+
+                            {/* Back Side: Answer */}
+                            <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 flex flex-col justify-between rounded-xl border-primary/30 bg-primary/5 p-5 shadow-sm">
+                              <div className="flex-1 flex items-center justify-center text-center overflow-y-auto max-h-[120px] pr-1">
+                                <p className="text-xs leading-relaxed text-foreground font-medium">
+                                  {flashcards[activeCardIndex]?.answer}
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-center uppercase tracking-wider text-primary/70 font-semibold">
+                                Answer (Click to flip back)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center justify-between px-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 focus-visible:ring-2"
+                            disabled={activeCardIndex === 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsCardFlipped(false);
+                              setTimeout(() => {
+                                setActiveCardIndex((prev) => prev - 1);
+                              }, 150);
+                            }}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <span className="text-xs font-semibold text-muted-foreground">
+                            Card {activeCardIndex + 1} of {flashcards.length}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 focus-visible:ring-2"
+                            disabled={activeCardIndex === flashcards.length - 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsCardFlipped(false);
+                              setTimeout(() => {
+                                setActiveCardIndex((prev) => prev + 1);
+                              }, 150);
+                            }}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center py-4">No flashcards found.</p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="quizzes" className="mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+                    {quizzes.length > 0 ? (
+                      <div className="space-y-6 max-h-[450px] overflow-y-auto pr-1">
+                        {/* Score display */}
+                        <div className="rounded-lg bg-muted/70 p-3 flex justify-between items-center text-xs font-semibold">
+                          <span className="text-muted-foreground">Overall Score</span>
+                          <span className="text-primary font-mono text-xs bg-background px-2.5 py-1 rounded border border-border">
+                            {Object.keys(quizSubmitted).length > 0
+                              ? `${quizzes.filter((_, idx) => quizSubmitted[idx] && selectedAnswers[idx] === quizzes[idx].answerIndex).length} / ${quizzes.length}`
+                              : `0 / ${quizzes.length}`}
+                          </span>
+                        </div>
+
+                        {quizzes.map((quiz, quizIdx) => {
+                          const submitted = quizSubmitted[quizIdx];
+                          const selectedOptionIdx = selectedAnswers[quizIdx];
+                          return (
+                            <div key={quizIdx} className="space-y-3 border-b border-border/60 pb-4 last:border-b-0 last:pb-0">
+                              <p className="text-xs font-semibold leading-snug">
+                                {quizIdx + 1}. {quiz.question}
+                              </p>
+                              <div className="space-y-2">
+                                {quiz.options.map((option, optIdx) => {
+                                  const isSelected = selectedOptionIdx === optIdx;
+                                  const isCorrect = quiz.answerIndex === optIdx;
+                                  
+                                  let optionStyle = "border-border hover:bg-muted/30 text-muted-foreground hover:text-foreground";
+                                  if (submitted) {
+                                    if (isCorrect) {
+                                      optionStyle = "border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 font-medium";
+                                    } else if (isSelected) {
+                                      optionStyle = "border-rose-500/50 bg-rose-500/10 text-rose-800 dark:text-rose-300 font-medium";
+                                    } else {
+                                      optionStyle = "border-border opacity-50 text-muted-foreground";
+                                    }
+                                  } else if (isSelected) {
+                                    optionStyle = "border-primary bg-primary/5 text-primary font-medium ring-2 ring-primary/20";
+                                  }
+
+                                  return (
+                                    <button
+                                      key={optIdx}
+                                      disabled={submitted}
+                                      onClick={() => {
+                                        setSelectedAnswers((prev) => ({ ...prev, [quizIdx]: optIdx }));
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-xs rounded-lg border transition-all flex items-center justify-between focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${optionStyle}`}
+                                    >
+                                      <span>{option}</span>
+                                      {submitted && isCorrect && (
+                                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✓</span>
+                                      )}
+                                      {submitted && isSelected && !isCorrect && (
+                                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400">✗</span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {!submitted && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full text-xs h-8 focus-visible:ring-2"
+                                  disabled={selectedOptionIdx === undefined}
+                                  onClick={() => {
+                                    setQuizSubmitted((prev) => ({ ...prev, [quizIdx]: true }));
+                                  }}
+                                >
+                                  Submit Answer
+                                </Button>
+                              )}
+
+                              {submitted && (
+                                <div className="rounded-lg bg-muted/40 p-2.5 text-[11px] leading-relaxed text-muted-foreground border border-border/30">
+                                  <strong className="text-foreground">Explanation: </strong>
+                                  {quiz.explanation}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center py-4">No quizzes found.</p>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+          </aside>
         </div>
       </main>
     </div>
