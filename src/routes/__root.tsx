@@ -34,6 +34,12 @@ export const Route = createRootRoute({
         content:
           "Upload, convert, edit and template PDFs in your browser. Export to Word, text, CSV. OCR for scanned documents.",
       },
+      { name: "robots", content: "index, follow" },
+      {
+        name: "keywords",
+        content:
+          "paperflow, paperflow app, paperflow pdf, convert pdf, edit pdf, pdf templates, pdf to word, pdf to excel, pdf to csv, ocr scanner, pdf workspace, document automation",
+      },
       { property: "og:title", content: "Paperflow — PDF conversion, editing & templates" },
       {
         property: "og:description",
@@ -45,6 +51,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
     ],
     links: [
+      { rel: "canonical", href: "https://paperflow.app" },
       { rel: "stylesheet", href: appCss },
       {
         rel: "stylesheet",
@@ -58,10 +65,28 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Paperflow",
+    url: "https://paperflow.app",
+    description:
+      "Upload, convert, edit and template PDFs. Export to Word, text, CSV. OCR for scanned documents.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://paperflow.app/?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body>
         {children}

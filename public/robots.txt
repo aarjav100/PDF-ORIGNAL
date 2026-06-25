@@ -1,0 +1,17 @@
+# robots.txt for Paperflow (https://paperflow.app)
+
+# Allow all indexing crawlers to scan the public landing page, pricing, templates, and auth portal
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /templates
+Allow: /auth
+
+# Disallow private user workspace areas and token callbacks
+Disallow: /dashboard
+Disallow: /dataset/*
+Disallow: /datasets
+Disallow: /edit/*
+Disallow: /auth/callback
+
+Sitemap: https://paperflow.app/sitemap.xml
