@@ -141,11 +141,13 @@ function AuthPage() {
               variant="outline"
               className="h-11 w-full"
               onClick={async () => {
-                const res = await lovable.auth.signInWithOAuth("google", {
-                  redirect_uri: `${window.location.origin}/dashboard`,
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: "google",
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                  },
                 });
-                if (res.error) toast.error(res.error.message);
-                else if (!res.redirected) navigate({ to: "/dashboard" });
+                if (error) toast.error(error.message);
               }}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

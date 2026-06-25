@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EditDocIdRouteImport } from './routes/edit.$docId'
 import { Route as DatasetDatasetIdRouteImport } from './routes/dataset.$datasetId'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
@@ -58,35 +59,43 @@ const DatasetDatasetIdRoute = DatasetDatasetIdRouteImport.update({
   path: '/dataset/$datasetId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/datasets': typeof DatasetsRoute
   '/pricing': typeof PricingRoute
   '/templates': typeof TemplatesRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/dataset/$datasetId': typeof DatasetDatasetIdRoute
   '/edit/$docId': typeof EditDocIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/datasets': typeof DatasetsRoute
   '/pricing': typeof PricingRoute
   '/templates': typeof TemplatesRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/dataset/$datasetId': typeof DatasetDatasetIdRoute
   '/edit/$docId': typeof EditDocIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/datasets': typeof DatasetsRoute
   '/pricing': typeof PricingRoute
   '/templates': typeof TemplatesRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/dataset/$datasetId': typeof DatasetDatasetIdRoute
   '/edit/$docId': typeof EditDocIdRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/datasets'
     | '/pricing'
     | '/templates'
+    | '/auth/callback'
     | '/dataset/$datasetId'
     | '/edit/$docId'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/datasets'
     | '/pricing'
     | '/templates'
+    | '/auth/callback'
     | '/dataset/$datasetId'
     | '/edit/$docId'
   id:
@@ -119,13 +130,14 @@ export interface FileRouteTypes {
     | '/datasets'
     | '/pricing'
     | '/templates'
+    | '/auth/callback'
     | '/dataset/$datasetId'
     | '/edit/$docId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DatasetsRoute: typeof DatasetsRoute
   PricingRoute: typeof PricingRoute
@@ -192,12 +204,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DatasetDatasetIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DatasetsRoute: DatasetsRoute,
   PricingRoute: PricingRoute,
