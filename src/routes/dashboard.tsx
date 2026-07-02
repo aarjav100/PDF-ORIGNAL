@@ -7,7 +7,7 @@ import {
   Loader2,
   Trash2,
   FileType2,
-  Sheet,
+  Sheet as SheetIcon,
   Wand2,
   ScanText,
   Download,
@@ -30,6 +30,7 @@ import {
   Edit3,
   Cloud,
   Combine,
+  Menu,
 } from "lucide-react";
 import { BackupRestoreDialog } from "@/components/BackupRestoreDialog";
 import { MergePdfsDialog } from "@/components/MergePdfsDialog";
@@ -53,6 +54,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { GeneratePptDialog } from "@/components/GeneratePptDialog";
 import { GenerateTemplateDialog } from "@/components/GenerateTemplateDialog";
 import { AdSlot } from "@/components/AdSlot";
@@ -147,6 +149,7 @@ function Dashboard() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [backupOpen, setBackupOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("pf-view", viewMode);
@@ -387,15 +390,13 @@ function Dashboard() {
         .from("documents")
         .upload(path, blob, { contentType: blob.type || "application/pdf" });
       if (upErr) throw upErr;
-      await supabase
-        .from("documents")
-        .insert({
-          filename: newName,
-          storage_path: path,
-          size_bytes: doc.size_bytes,
-          user_id: user.id,
-          folder_id: doc.folder_id,
-        });
+      await supabase.from("documents").insert({
+        filename: newName,
+        storage_path: path,
+        size_bytes: doc.size_bytes,
+        user_id: user.id,
+        folder_id: doc.folder_id,
+      });
       toast.success("Duplicated");
       refresh();
     } catch (e) {
@@ -479,118 +480,143 @@ function Dashboard() {
 
   const inTrash = view.kind === "trash";
 
+  const renderSidebarContent = (isMobile = false) => {
+    const handleSelectView = (v: View) => {
+      setView(v);
+      if (isMobile) setSidebarOpen(false);
+    };
+
+    return (
+      <div className="space-y-1">
+        <NavItem
+          active={view.kind === "all"}
+          onClick={() => handleSelectView({ kind: "all" })}
+          icon={Inbox}
+          label="All files"
+          count={counts.all}
+        />
+        <NavItem
+          active={view.kind === "recent"}
+          onClick={() => handleSelectView({ kind: "recent" })}
+          icon={Clock}
+          label="Recent"
+        />
+        <NavItem
+          active={view.kind === "favorites"}
+          onClick={() => handleSelectView({ kind: "favorites" })}
+          icon={Star}
+          label="Favorites"
+          count={counts.fav}
+        />
+        <NavItem
+          active={view.kind === "trash"}
+          onClick={() => handleSelectView({ kind: "trash" })}
+          icon={Trash2}
+          label="Trash"
+          count={counts.trash}
+        />
+        <div className="mt-6 flex items-center justify-between px-3">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Folders
+          </p>
+          <button
+            onClick={createFolder}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="New folder"
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="mt-1 space-y-0.5">
+          {folders.length === 0 && (
+            <p className="px-3 py-2 text-xs text-muted-foreground">No folders yet</p>
+          )}
+          {folders.map((f) => {
+            const active = view.kind === "folder" && view.id === f.id;
+            return (
+              <div
+                key={f.id}
+                className={`group flex items-center gap-1 rounded-md pr-1 ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}
+              >
+                <button
+                  onClick={() => handleSelectView({ kind: "folder", id: f.id })}
+                  className={`flex flex-1 items-center gap-2.5 px-3 py-2 text-sm ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                >
+                  <Folder className="h-4 w-4" />
+                  <span className="truncate">{f.name}</span>
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label="Folder options"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => renameFolder(f)}>
+                      <Edit3 className="mr-2 h-4 w-4" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => deleteFolder(f)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-6 rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            <span>Storage</span>
+            <span>{isPro ? "Pro" : "Free"}</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full bg-primary transition-all" style={{ width: `${storagePct}%` }} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            {fmtBytes(storageBytes)} of {fmtBytes(STORAGE_QUOTA)}
+          </p>
+          <button
+            onClick={() => {
+              setBackupOpen(true);
+              if (isMobile) setSidebarOpen(false);
+            }}
+            className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-secondary"
+          >
+            <Cloud className="h-3 w-3" /> Backup & Restore
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[220px_1fr] md:px-8 md:py-10">
         {/* Sidebar */}
-        <aside className="space-y-1">
-          <NavItem
-            active={view.kind === "all"}
-            onClick={() => setView({ kind: "all" })}
-            icon={Inbox}
-            label="All files"
-            count={counts.all}
-          />
-          <NavItem
-            active={view.kind === "recent"}
-            onClick={() => setView({ kind: "recent" })}
-            icon={Clock}
-            label="Recent"
-          />
-          <NavItem
-            active={view.kind === "favorites"}
-            onClick={() => setView({ kind: "favorites" })}
-            icon={Star}
-            label="Favorites"
-            count={counts.fav}
-          />
-          <NavItem
-            active={view.kind === "trash"}
-            onClick={() => setView({ kind: "trash" })}
-            icon={Trash2}
-            label="Trash"
-            count={counts.trash}
-          />
-          <div className="mt-6 flex items-center justify-between px-3">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Folders
-            </p>
-            <button
-              onClick={createFolder}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="New folder"
-            >
-              <FolderPlus className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="mt-1 space-y-0.5">
-            {folders.length === 0 && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">No folders yet</p>
-            )}
-            {folders.map((f) => {
-              const active = view.kind === "folder" && view.id === f.id;
-              return (
-                <div
-                  key={f.id}
-                  className={`group flex items-center gap-1 rounded-md pr-1 ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}
-                >
-                  <button
-                    onClick={() => setView({ kind: "folder", id: f.id })}
-                    className={`flex flex-1 items-center gap-2.5 px-3 py-2 text-sm ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <Folder className="h-4 w-4" />
-                    <span className="truncate">{f.name}</span>
-                  </button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
-                        aria-label="Folder options"
-                      >
-                        <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => renameFolder(f)}>
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => deleteFolder(f)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-6 rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-              <span>Storage</span>
-              <span>{isPro ? "Pro" : "Free"}</span>
-            </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${storagePct}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              {fmtBytes(storageBytes)} of {fmtBytes(STORAGE_QUOTA)}
-            </p>
-            <button
-              onClick={() => setBackupOpen(true)}
-              className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-secondary"
-            >
-              <Cloud className="h-3 w-3" /> Backup & Restore
-            </button>
-          </div>
-        </aside>
+        <aside className="hidden md:block space-y-1">{renderSidebarContent(false)}</aside>
+
+        {/* Mobile Sidebar Sheet Drawer */}
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="w-[280px] p-6 overflow-y-auto">
+            <SheetHeader className="pb-4 border-b">
+              <SheetTitle className="flex items-center gap-2">
+                <LayoutGrid className="h-5 w-5 text-primary" />
+                <span>Navigation</span>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="py-4">{renderSidebarContent(true)}</div>
+          </SheetContent>
+        </Sheet>
+
         <BackupRestoreDialog open={backupOpen} onOpenChange={setBackupOpen} onRestored={refresh} />
         <MergePdfsDialog
           open={mergeOpen}
@@ -613,7 +639,16 @@ function Dashboard() {
                   (folders.find((f) => f.id === view.id)?.name || "Folder")}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="md:hidden inline-flex items-center gap-1.5 h-9"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-4 w-4" />
+                <span>Filters</span>
+              </Button>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -933,7 +968,7 @@ function Dashboard() {
                                       {working[`${d.id}-csv-x`] ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                       ) : (
-                                        <Sheet className="h-3.5 w-3.5" />
+                                        <SheetIcon className="h-3.5 w-3.5" />
                                       )}
                                       <span className="ml-1.5">CSV</span>
                                       {!isPro && <Crown className="ml-1 h-3 w-3 text-accent" />}

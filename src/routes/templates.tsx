@@ -224,7 +224,7 @@ function Templates() {
         )}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[320px_1fr]">
-          <aside className="space-y-2">
+          <aside className={`space-y-2 ${active !== null || name ? "hidden lg:block" : "block"}`}>
             {templates.length === 0 ? (
               <Card className="border-dashed bg-transparent p-6 text-center text-sm text-muted-foreground">
                 <Wand2 className="mx-auto h-6 w-6 opacity-50" />
@@ -265,7 +265,7 @@ function Templates() {
             )}
           </aside>
 
-          <Card className="p-6">
+          <Card className={`p-6 ${active === null && !name ? "hidden lg:block" : "block"}`}>
             {active === null && !name ? (
               <div className="grid place-items-center py-20 text-center text-muted-foreground">
                 <FileText className="h-10 w-10 opacity-40" />
@@ -273,6 +273,21 @@ function Templates() {
               </div>
             ) : (
               <>
+                <div className="mb-4 flex items-center lg:hidden">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setActive(null);
+                      setName("");
+                      setBody("");
+                    }}
+                    className="h-8 px-2"
+                  >
+                    <ArrowLeft className="mr-1.5 h-4 w-4" />
+                    <span>Back to templates</span>
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="tname">Name</Label>
                   <Input id="tname" value={name} onChange={(e) => setName(e.target.value)} />

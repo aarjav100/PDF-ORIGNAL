@@ -253,14 +253,14 @@ function DatasetView() {
         }
       }
     });
-    
+
     // 2. Duplicates
     const hasDupStep = steps.some((s) => s.kind === "drop_duplicates");
     const dupSteps: CleaningStep[] = [];
     if (!hasDupStep && (profile?.duplicateRows ?? 0) > 0) {
       dupSteps.push({ kind: "drop_duplicates" });
     }
-    
+
     // 3. Outliers
     const outlierSteps: CleaningStep[] = [];
     currentProfile?.columns.forEach((c) => {
@@ -272,7 +272,9 @@ function DatasetView() {
     const combined = [...missingSteps, ...dupSteps, ...outlierSteps];
     if (combined.length > 0) {
       setSteps((s) => [...s, ...combined]);
-      toast.success(`Applied all ${combined.length} recommended fixes! Check the Preview or Pipeline tab.`);
+      toast.success(
+        `Applied all ${combined.length} recommended fixes! Check the Preview or Pipeline tab.`,
+      );
     } else {
       toast.info("No unresolved issues detected!");
     }
@@ -282,7 +284,12 @@ function DatasetView() {
     const name = step.step.toLowerCase();
     const colName = step.column;
 
-    if (name.includes("missing") || name.includes("impute") || name.includes("fill") || name.includes("null")) {
+    if (
+      name.includes("missing") ||
+      name.includes("impute") ||
+      name.includes("fill") ||
+      name.includes("null")
+    ) {
       if (colName) {
         const col = currentProfile?.columns.find((c) => c.name === colName);
         if (col) {
@@ -314,7 +321,9 @@ function DatasetView() {
         toast.success(`Dropped column ${colName}`);
       }
     } else {
-      toast.info(`Could not automatically apply step: "${step.step}". Please configure it manually in the Cleaning Pipeline tab.`);
+      toast.info(
+        `Could not automatically apply step: "${step.step}". Please configure it manually in the Cleaning Pipeline tab.`,
+      );
     }
   };
 
@@ -631,7 +640,8 @@ function DatasetView() {
                   {meta.analysis.dataQuality.issues.length > 0 && (
                     <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/60 pt-4">
                       <p className="text-xs text-muted-foreground">
-                        AI found {meta.analysis.dataQuality.issues.length} data quality issues in this dataset.
+                        AI found {meta.analysis.dataQuality.issues.length} data quality issues in
+                        this dataset.
                       </p>
                       <Button
                         size="sm"
@@ -666,7 +676,9 @@ function DatasetView() {
                 <Card className="p-4 flex flex-col justify-between gap-4">
                   <div>
                     <p className="mb-1 font-display font-semibold">Duplicates</p>
-                    <p className="text-sm text-muted-foreground">{meta.analysis.duplicateAnalysis}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {meta.analysis.duplicateAnalysis}
+                    </p>
                   </div>
                   <Button
                     variant="outline"
@@ -712,7 +724,10 @@ function DatasetView() {
                   </p>
                   <ol className="space-y-2 text-sm">
                     {meta.analysis.preprocessingSteps.map((s, k) => (
-                      <li key={k} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border bg-secondary/30 p-3">
+                      <li
+                        key={k}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border bg-secondary/30 p-3"
+                      >
                         <div className="flex gap-3">
                           <span className="font-mono text-xs text-accent mt-0.5">
                             {(k + 1).toString().padStart(2, "0")}
@@ -1216,20 +1231,40 @@ function MlPipelineBuilder({
   return (
     <Card className="p-5 border-border bg-card">
       <Tabs defaultValue="encoding" className="w-full">
-        <TabsList className="grid grid-cols-5 w-full bg-secondary/50">
-          <TabsTrigger value="encoding" onClick={handleClearSelection} className="text-xs">
+        <TabsList className="flex overflow-x-auto max-w-full justify-start gap-1 p-1 bg-secondary/50 md:grid md:grid-cols-5 md:gap-0 md:p-0">
+          <TabsTrigger
+            value="encoding"
+            onClick={handleClearSelection}
+            className="text-xs shrink-0 md:shrink"
+          >
             Encoding
           </TabsTrigger>
-          <TabsTrigger value="scaling" onClick={handleClearSelection} className="text-xs">
+          <TabsTrigger
+            value="scaling"
+            onClick={handleClearSelection}
+            className="text-xs shrink-0 md:shrink"
+          >
             Scaling
           </TabsTrigger>
-          <TabsTrigger value="features" onClick={handleClearSelection} className="text-xs">
+          <TabsTrigger
+            value="features"
+            onClick={handleClearSelection}
+            className="text-xs shrink-0 md:shrink"
+          >
             Features
           </TabsTrigger>
-          <TabsTrigger value="selection" onClick={handleClearSelection} className="text-xs">
+          <TabsTrigger
+            value="selection"
+            onClick={handleClearSelection}
+            className="text-xs shrink-0 md:shrink"
+          >
             Selection
           </TabsTrigger>
-          <TabsTrigger value="balance" onClick={handleClearSelection} className="text-xs">
+          <TabsTrigger
+            value="balance"
+            onClick={handleClearSelection}
+            className="text-xs shrink-0 md:shrink"
+          >
             Balancing
           </TabsTrigger>
         </TabsList>
