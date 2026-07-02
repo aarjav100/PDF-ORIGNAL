@@ -35,3 +35,11 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Python virtual environments and caches
+**/__pycache__/
+**/*.pyc
+**/venv/
+**/.venv/
+.python-version
+
