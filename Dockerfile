@@ -4,7 +4,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir -r python-service/requirements.txt
 
 # Copy package files and install node dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
+
 
 # Copy the rest of the application
 COPY . .
